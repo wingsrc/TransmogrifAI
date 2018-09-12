@@ -32,9 +32,6 @@ package com.salesforce.op.dsl
 
 import com.salesforce.op.features.FeatureLike
 import com.salesforce.op.features.types._
-import com.salesforce.op.stages.base.binary.BinaryLambdaTransformer
-import com.salesforce.op.stages.base.quaternary.QuaternaryLambdaTransformer
-import com.salesforce.op.stages.base.ternary.TernaryLambdaTransformer
 import com.salesforce.op.stages.base.unary.UnaryLambdaTransformer
 import com.salesforce.op.stages.impl.feature.{AliasTransformer, ToOccurTransformer}
 import com.salesforce.op.stages.sparkwrappers.generic.SparkWrapperParams
@@ -53,19 +50,6 @@ trait RichFeature {
   (val feature: FeatureLike[A])(implicit val ftt: TypeTag[A#Value]) {
 
     /**
-     * Unary transform feature[A] => feature[B]
-     *
-     * @param f map A => B
-     * @return feature of type B
-     */
-    def map[B <: FeatureType : TypeTag](f: A => B, operationName: String = "map")
-      (implicit ttb: TypeTag[B#Value]): FeatureLike[B] = {
-      feature.transformWith(
-        new UnaryLambdaTransformer[A, B](operationName = operationName, transformFn = f)
-      )
-    }
-
-    /**
      * Replace a matching value with a new one
      *
      * @param oldVal of type A
@@ -73,54 +57,7 @@ trait RichFeature {
      * @return feature of type A
      */
     def replaceWith(oldVal: A, newVal: A): FeatureLike[A] = {
-      map[A](a => if (oldVal == a) newVal else a)
-    }
-
-    /**
-     * Binary transform (feature[A], feature[B]) => feature[C]
-     *
-     * @param f map (A, B) => C
-     * @return feature of type C
-     */
-    def map[B <: FeatureType : TypeTag, C <: FeatureType : TypeTag](
-      f1: FeatureLike[B], f: (A, B) => C
-    )(implicit ttb: TypeTag[B#Value], ttc: TypeTag[C#Value]): FeatureLike[C] = {
-      feature.transformWith(
-        new BinaryLambdaTransformer[A, B, C](operationName = "map", transformFn = f),
-        f = f1
-      )
-    }
-
-    /**
-     * Ternary transform (feature[A], feature[B], feature[C]) => feature[D]
-     *
-     * @param f map (A, B, C) => D
-     * @return feature of type D
-     */
-    def map[B <: FeatureType : TypeTag, C <: FeatureType : TypeTag, D <: FeatureType : TypeTag](
-      f1: FeatureLike[B], f2: FeatureLike[C], f: (A, B, C) => D
-    )(implicit ttb: TypeTag[B#Value], ttc: TypeTag[C#Value], ttd: TypeTag[D#Value]): FeatureLike[D] = {
-      feature.transformWith(
-        new TernaryLambdaTransformer[A, B, C, D](operationName = "map", transformFn = f),
-        f1 = f1, f2 = f2
-      )
-    }
-
-    /**
-     * Quaternary transform (feature[A], feature[B], feature[C], feature[D]) => feature[E]
-     *
-     * @param f map (A, B, C, D) => E
-     * @return feature of type E
-     */
-    def map[B <: FeatureType : TypeTag,
-    C <: FeatureType : TypeTag, D <: FeatureType : TypeTag, E <: FeatureType : TypeTag](
-      f1: FeatureLike[B], f2: FeatureLike[C], f3: FeatureLike[D], f: (A, B, C, D) => E
-    )(implicit ttb: TypeTag[B#Value], ttc: TypeTag[C#Value], ttd: TypeTag[D#Value], tte: TypeTag[E#Value]
-    ): FeatureLike[E] = {
-      feature.transformWith(
-        new QuaternaryLambdaTransformer[A, B, C, D, E](operationName = "map", transformFn = f),
-        f1 = f1, f2 = f2, f3 = f3
-      )
+      feature.map[A](a => if (oldVal == a) newVal else a)
     }
 
     /**

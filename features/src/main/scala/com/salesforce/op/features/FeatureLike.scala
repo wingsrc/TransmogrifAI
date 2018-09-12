@@ -33,11 +33,15 @@ package com.salesforce.op.features
 import com.salesforce.op.FeatureHistory
 import com.salesforce.op.features.types.FeatureType
 import com.salesforce.op.stages._
+import com.salesforce.op.stages.base.binary.BinaryLambdaTransformer
+import com.salesforce.op.stages.base.quaternary.QuaternaryLambdaTransformer
+import com.salesforce.op.stages.base.ternary.TernaryLambdaTransformer
+import com.salesforce.op.stages.base.unary.UnaryLambdaTransformer
 import org.slf4j.LoggerFactory
 import scalax.collection.GraphPredef._
 import scalax.collection._
 
-import scala.reflect.runtime.universe.WeakTypeTag
+import scala.reflect.runtime.universe._
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -164,8 +168,7 @@ trait FeatureLike[O <: FeatureType] {
     val oid = Option(originStage).map(_.uid).orNull
     val pids = parents.map(_.uid).mkString("[", ",", "]")
     s"${this.getClass.getSimpleName}(" +
-      s"name = $name, uid = $uid, isResponse = $isResponse, originStage = $oid, parents = $pids," +
-      s" distributions = ${distributions})"
+      s"name = $name, uid = $uid, isResponse = $isResponse, originStage = $oid, parents = $pids)"
   }
 
   /**
@@ -179,6 +182,79 @@ trait FeatureLike[O <: FeatureType] {
   final def asRaw(isResponse: Boolean = isResponse): FeatureLike[O] = {
     val raw = FeatureBuilder.fromRow[O](name)(wtt)
     if (isResponse) raw.asResponse else raw.asPredictor
+  }
+
+  /**
+   * Transform the feature with a given transformation function and input features
+   *
+   * @param f map function
+   * @param operationName name of the operation
+   */
+  final def map[B <: FeatureType : TypeTag](
+    f: O => B, operationName: String = "map"
+  )(implicit ttv: TypeTag[B#Value]): FeatureLike[B] = {
+    implicit val tt: TypeTag[O] = wtt.asInstanceOf[TypeTag[O]]
+    transformWith(
+      new UnaryLambdaTransformer[O, B](operationName = operationName, transformFn = f)
+    )
+  }
+
+  /**
+   * Transform the feature with a given transformation function and input features
+   *
+   * @param f1 other feature
+   * @param f map function
+   * @param operationName name of the operation
+   */
+  final def map[B <: FeatureType : TypeTag, C <: FeatureType : TypeTag](
+    f1: FeatureLike[B], f: (O, B) => C, operationName: String = "map"
+  )(implicit ttb: TypeTag[B#Value], ttc: TypeTag[C#Value]): FeatureLike[C] = {
+    implicit val tt: TypeTag[O] = wtt.asInstanceOf[TypeTag[O]]
+    transformWith(
+      new BinaryLambdaTransformer[O, B, C](operationName = operationName, transformFn = f),
+      f = f1
+    )
+  }
+
+  /**
+   * Transform the feature with a given transformation function and input features
+   *
+   * @param f1 other feature
+   * @param f2 other feature
+   * @param f map function
+   * @param operationName name of the operation
+   */
+  final def map[B <: FeatureType : TypeTag, C <: FeatureType : TypeTag, D <: FeatureType : TypeTag](
+    f1: FeatureLike[B], f2: FeatureLike[C], f: (O, B, C) => D, operationName: String = "map"
+  )(implicit ttb: TypeTag[B#Value], ttc: TypeTag[C#Value], ttd: TypeTag[D#Value]): FeatureLike[D] = {
+    implicit val tt: TypeTag[O] = wtt.asInstanceOf[TypeTag[O]]
+    transformWith(
+      new TernaryLambdaTransformer[O, B, C, D](operationName = operationName, transformFn = f),
+      f1 = f1, f2 = f2
+    )
+  }
+
+  /**
+   * Transform the feature with a given transformation function and input features
+   *
+   * @param f1 other feature
+   * @param f2 other feature
+   * @param f3 other feature
+   * @param f map function
+   * @param operationName name of the operation
+   */
+  final def map[B <: FeatureType : TypeTag,
+  C <: FeatureType : TypeTag, D <: FeatureType : TypeTag, E <: FeatureType : TypeTag](
+    f1: FeatureLike[B], f2: FeatureLike[C], f3: FeatureLike[D],
+    f: (O, B, C, D) => E,
+    operationName: String = "map"
+  )(implicit ttb: TypeTag[B#Value], ttc: TypeTag[C#Value], ttd: TypeTag[D#Value], tte: TypeTag[E#Value]
+  ): FeatureLike[E] = {
+    implicit val tt: TypeTag[O] = wtt.asInstanceOf[TypeTag[O]]
+    transformWith(
+      new QuaternaryLambdaTransformer[O, B, C, D, E](operationName = operationName, transformFn = f),
+      f1 = f1, f2 = f2, f3 = f3
+    )
   }
 
   /**
