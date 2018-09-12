@@ -144,22 +144,23 @@ class TransformersTest extends FlatSpec with Matchers with PassengerFeaturesTest
     all.forall(_.originStage.isInstanceOf[Transformer]) shouldBe true
   }
   it should "allow applying generic feature binary transformations" in {
-    val heightSquare: FeatureLike[RealNN] = height.map[RealNN, RealNN](height, (l, r) =>
-      (l.value.get / r.value.get).toRealNN
+    val heightSquare: FeatureLike[RealNN] = height.map[RealNN, RealNN](height,
+      (l: RealNN, r: RealNN) => (l.value.get / r.value.get).toRealNN
     )
     heightSquare.parents shouldBe Array(height, height)
     heightSquare.originStage shouldBe a[Transformer]
   }
   it should "allow applying generic feature ternary transformations" in {
-    val heightRes: FeatureLike[RealNN] = height.map[RealNN, RealNN, RealNN](height, height, (l, r, z) =>
-      (l.value.get * r.value.get + z.value.get).toRealNN
+    val heightRes: FeatureLike[RealNN] = height.map[RealNN, RealNN, RealNN](height, height,
+      (l: RealNN, r: RealNN, z: RealNN) => (l.value.get * r.value.get + z.value.get).toRealNN
     )
     heightRes.parents shouldBe Array(height, height, height)
     heightRes.originStage shouldBe a[Transformer]
   }
   it should "allow applying generic feature quaternary transformations" in {
     val heightRes: FeatureLike[RealNN] = height.map[RealNN, RealNN, Real, RealNN](height, height, age,
-      (h1, h2, h3, a) => (h1.value.get * h2.value.get + h3.value.get - a.value.getOrElse(0.0)).toRealNN
+      (h1: RealNN, h2: RealNN, h3: RealNN, a: Real) =>
+        (h1.value.get * h2.value.get + h3.value.get - a.value.getOrElse(0.0)).toRealNN
     )
     heightRes.parents shouldBe Array(height, height, height, age)
     heightRes.originStage shouldBe a[Transformer]
