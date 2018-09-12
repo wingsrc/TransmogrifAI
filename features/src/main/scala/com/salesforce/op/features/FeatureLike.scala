@@ -204,10 +204,22 @@ trait FeatureLike[O <: FeatureType] {
    *
    * @param f1 other feature
    * @param f map function
+   */
+  final def map[B <: FeatureType : TypeTag, C <: FeatureType : TypeTag](
+    f1: FeatureLike[B], f: (O, B) => C
+  )(implicit ttb: TypeTag[B#Value], ttc: TypeTag[C#Value]): FeatureLike[C] = {
+    map[B, C](f1, f, operationName = "map")
+  }
+
+  /**
+   * Transform the feature with a given transformation function and input features
+   *
+   * @param f1 other feature
+   * @param f map function
    * @param operationName name of the operation
    */
   final def map[B <: FeatureType : TypeTag, C <: FeatureType : TypeTag](
-    f1: FeatureLike[B], f: (O, B) => C, operationName: String = "map"
+    f1: FeatureLike[B], f: (O, B) => C, operationName: String
   )(implicit ttb: TypeTag[B#Value], ttc: TypeTag[C#Value]): FeatureLike[C] = {
     implicit val tt: TypeTag[O] = wtt.asInstanceOf[TypeTag[O]]
     transformWith(
@@ -222,10 +234,23 @@ trait FeatureLike[O <: FeatureType] {
    * @param f1 other feature
    * @param f2 other feature
    * @param f map function
+   */
+  final def map[B <: FeatureType : TypeTag, C <: FeatureType : TypeTag, D <: FeatureType : TypeTag](
+    f1: FeatureLike[B], f2: FeatureLike[C], f: (O, B, C) => D
+  )(implicit ttb: TypeTag[B#Value], ttc: TypeTag[C#Value], ttd: TypeTag[D#Value]): FeatureLike[D] = {
+    map[B, C, D](f1, f2, f, operationName = "map")
+  }
+
+  /**
+   * Transform the feature with a given transformation function and input features
+   *
+   * @param f1 other feature
+   * @param f2 other feature
+   * @param f map function
    * @param operationName name of the operation
    */
   final def map[B <: FeatureType : TypeTag, C <: FeatureType : TypeTag, D <: FeatureType : TypeTag](
-    f1: FeatureLike[B], f2: FeatureLike[C], f: (O, B, C) => D, operationName: String = "map"
+    f1: FeatureLike[B], f2: FeatureLike[C], f: (O, B, C) => D, operationName: String
   )(implicit ttb: TypeTag[B#Value], ttc: TypeTag[C#Value], ttd: TypeTag[D#Value]): FeatureLike[D] = {
     implicit val tt: TypeTag[O] = wtt.asInstanceOf[TypeTag[O]]
     transformWith(
@@ -241,13 +266,27 @@ trait FeatureLike[O <: FeatureType] {
    * @param f2 other feature
    * @param f3 other feature
    * @param f map function
+   */
+  final def map[B <: FeatureType : TypeTag,
+  C <: FeatureType : TypeTag, D <: FeatureType : TypeTag, E <: FeatureType : TypeTag](
+    f1: FeatureLike[B], f2: FeatureLike[C], f3: FeatureLike[D], f: (O, B, C, D) => E
+  )(implicit ttb: TypeTag[B#Value], ttc: TypeTag[C#Value], ttd: TypeTag[D#Value], tte: TypeTag[E#Value]
+  ): FeatureLike[E] = {
+    map[B, C, D, E](f1, f2, f3, f, operationName = "map")
+  }
+
+  /**
+   * Transform the feature with a given transformation function and input features
+   *
+   * @param f1 other feature
+   * @param f2 other feature
+   * @param f3 other feature
+   * @param f map function
    * @param operationName name of the operation
    */
   final def map[B <: FeatureType : TypeTag,
   C <: FeatureType : TypeTag, D <: FeatureType : TypeTag, E <: FeatureType : TypeTag](
-    f1: FeatureLike[B], f2: FeatureLike[C], f3: FeatureLike[D],
-    f: (O, B, C, D) => E,
-    operationName: String = "map"
+    f1: FeatureLike[B], f2: FeatureLike[C], f3: FeatureLike[D], f: (O, B, C, D) => E, operationName: String
   )(implicit ttb: TypeTag[B#Value], ttc: TypeTag[C#Value], ttd: TypeTag[D#Value], tte: TypeTag[E#Value]
   ): FeatureLike[E] = {
     implicit val tt: TypeTag[O] = wtt.asInstanceOf[TypeTag[O]]
