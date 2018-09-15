@@ -387,7 +387,8 @@ case object ModelInsights {
     val typeHints = FullTypeHints(List(
       classOf[Continuous], classOf[Discrete],
       classOf[DataBalancerSummary], classOf[DataCutterSummary], classOf[DataSplitterSummary],
-      classOf[SingleMetric], classOf[MultiMetrics], classOf[BinaryClassificationMetrics], classOf[ThresholdMetrics],
+      classOf[SingleMetric], classOf[MultiMetrics], classOf[BinaryClassificationMetrics],
+      classOf[BinaryClassificationBinMetrics], classOf[ThresholdMetrics],
       classOf[MultiClassificationMetrics], classOf[RegressionMetrics]
     ))
     val evalMetricsSerializer = new CustomSerializer[EvalMetric](_ =>
@@ -636,9 +637,13 @@ case object ModelInsights {
         case Some(m: RandomForestClassificationModel) => Seq(m.featureImportances.toArray.toSeq)
         case Some(m: NaiveBayesModel) => m.theta.rowIter.toSeq.map(_.toArray.toSeq)
         case Some(m: DecisionTreeClassificationModel) => Seq(m.featureImportances.toArray.toSeq)
+        case Some(m: GBTClassificationModel) => Seq(m.featureImportances.toArray.toSeq)
+        case Some(m: LinearSVCModel) => Seq(m.coefficients.toArray.toSeq)
         case Some(m: LinearRegressionModel) => Seq(m.coefficients.toArray.toSeq)
         case Some(m: DecisionTreeRegressionModel) => Seq(m.featureImportances.toArray.toSeq)
         case Some(m: RandomForestRegressionModel) => Seq(m.featureImportances.toArray.toSeq)
+        case Some(m: GBTRegressionModel) => Seq(m.featureImportances.toArray.toSeq)
+        case Some(m: GeneralizedLinearRegressionModel) => Seq(m.coefficients.toArray.toSeq)
         case _ => Seq.empty[Seq[Double]]
       }
       case _ => Seq.empty[Seq[Double]]
