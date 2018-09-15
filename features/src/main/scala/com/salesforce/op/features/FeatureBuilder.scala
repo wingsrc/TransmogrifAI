@@ -236,7 +236,7 @@ object FeatureBuilder {
  * @tparam I input data type
  * @tparam O output feature type
  */
-final class FeatureBuilder[I, O <: FeatureType](val name: String) {
+final class FeatureBuilder[I : WeakTypeTag, O <: FeatureType : WeakTypeTag](val name: String) {
 
   /**
    * Feature extract method - a function to extract value of the feature from the raw data.

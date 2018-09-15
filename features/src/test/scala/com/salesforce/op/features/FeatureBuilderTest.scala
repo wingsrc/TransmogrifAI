@@ -34,7 +34,7 @@ import java.util
 
 import com.salesforce.op.aggregators._
 import com.salesforce.op.features.types._
-import com.salesforce.op.stages.FeatureGeneratorStage
+import com.salesforce.op.stages.{FeatureGeneratorStage, OpPipelineStage, OpTransformer}
 import com.salesforce.op.test.{Passenger, TestSparkContext}
 import com.twitter.algebird.MonoidAggregator
 import org.apache.spark.sql.{DataFrame, Row}
@@ -180,6 +180,7 @@ object assertFeature extends Matchers {
    * @param out             expected output value
    * @param name            expected name
    * @param isResponse      is expected to be a response
+   * @param parents         expected parents
    * @param aggregator      expected aggregator
    * @param aggregateWindow expected aggregate window
    * @param tti             expected input typetag
@@ -187,30 +188,49 @@ object assertFeature extends Matchers {
    * @tparam I input type
    * @tparam O output feature type
    */
-  def apply[I, O <: FeatureType](f: FeatureLike[O])(
+  def apply[I, O <: FeatureType : FeatureTypeSparkConverter](f: FeatureLike[O])(
     in: I, out: O, name: String, isResponse: Boolean = false,
-    aggregator: WeakTypeTag[O] => MonoidAggregator[Event[O], _, O] =
-    (wtt: WeakTypeTag[O]) => MonoidAggregatorDefaults.aggregatorOf[O](wtt),
+    parents: Seq[OPFeature] = Nil,
+    aggregator: WeakTypeTag[O] => MonoidAggregator[Event[O], _, O] = (wtt: WeakTypeTag[O]) =>
+      MonoidAggregatorDefaults.aggregatorOf[O](wtt),
     aggregateWindow: Option[Duration] = None
   )(implicit tti: WeakTypeTag[I], wtt: WeakTypeTag[O]): Unit = {
     f.name shouldBe name
     f.isResponse shouldBe isResponse
-    f.parents shouldBe Nil
-    f.uid.startsWith(wtt.tpe.dealias.toString.split("\\.").last) shouldBe true
+    f.parents shouldBe parents
+    f.uid should startWith (wtt.tpe.dealias.toString.split("\\.").last)
     f.wtt.tpe =:= wtt.tpe shouldBe true
-    f.isRaw shouldBe true
+    f.isRaw shouldBe parents.isEmpty
     f.typeName shouldBe wtt.tpe.typeSymbol.fullName
 
-    f.originStage shouldBe a[FeatureGeneratorStage[_, _ <: FeatureType]]
-    val fg = f.originStage.asInstanceOf[FeatureGeneratorStage[I, O]]
-    fg.tti shouldBe tti
-    fg.aggregator shouldBe aggregator(wtt)
-    fg.extractFn(in) shouldBe out
-    fg.extractSource.nonEmpty shouldBe true // TODO we should eval the code here: eval(fg.extractSource)(in)
-    fg.getOutputFeatureName shouldBe name
-    fg.outputIsResponse shouldBe isResponse
-    fg.aggregateWindow shouldBe aggregateWindow
-    fg.uid.startsWith(classOf[FeatureGeneratorStage[I, O]].getSimpleName) shouldBe true
+    if (f.isRaw) {
+      f.originStage shouldBe a[FeatureGeneratorStage[_, _ <: FeatureType]]
+      val fg = f.originStage.asInstanceOf[FeatureGeneratorStage[I, O]]
+      fg.tti shouldBe tti
+      fg.aggregator shouldBe aggregator(wtt)
+      fg.extractFn(in) shouldBe out
+
+      // TODO we should eval the code here: eval(fg.extractSource)(in)
+        /* import scala.reflect.runtime.universe
+      import scala.tools.reflect.ToolBox
+      val tb = universe.runtimeMirror(getClass.getClassLoader).mkToolBox()
+      tb.eval(tb.parse("""println("hello!")""")) */
+
+      fg.extractSource should not be empty
+      fg.getOutputFeatureName shouldBe name
+      fg.outputIsResponse shouldBe isResponse
+      fg.aggregateWindow shouldBe aggregateWindow
+      fg.uid should startWith(classOf[FeatureGeneratorStage[I, O]].getSimpleName)
+    } else {
+      f.originStage shouldBe a[OpPipelineStage[_]]
+      f.originStage match {
+        case t: OpTransformer =>
+          val conv = implicitly[FeatureTypeSparkConverter[O]]
+          val res = t.transformKeyValue(_ => in)
+          conv.fromSpark(res) shouldBe out
+        case _ =>
+      }
+    }
   }
 
 }
