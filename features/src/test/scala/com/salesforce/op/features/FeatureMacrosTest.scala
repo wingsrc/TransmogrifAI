@@ -42,9 +42,18 @@ class FeatureMacrosTest extends FlatSpec with TestCommon {
 
   val feature: FeatureLike[Real] = FeatureBuilder.Real[Double].extract(_.toReal).asPredictor
 
-  Spec(FeatureMacros.getClass) should " a map function" in {
+  Spec(FeatureMacros.getClass) should "provide an unary map function" in {
     val t = FeatureMacros.map[Real, Text](feature, _.value.map(_.toString).toText, "map")
     assertFeature(t)(in = 123.0, out = "123.0".toText, name = t.name, parents = Seq(feature))
+  }
+  it should "provide a binary map function" in {
+    // TODO
+  }
+  it should "provide a ternary map function" in {
+    // TODO
+  }
+  it should "provide a quaternary map function" in {
+    // TODO
   }
 
 }
