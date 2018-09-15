@@ -31,7 +31,6 @@
 package com.salesforce.op.features
 
 import com.salesforce.op.features.types._
-import sourcecode._
 
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox
@@ -66,15 +65,14 @@ private[features] class FeatureMacrosImpl(val c: blackbox.Context) {
     in: c.Expr[FeatureLike[O]], f: c.Expr[O => B], operationName: c.Expr[String]
   ): c.Expr[FeatureLike[B]] = {
     import c.universe._
-    // val line = Line.impl(c)
-    // val file = File.impl(c)
-    // val thiz = This(c.enclosingClass.symbol.asModule.moduleClass)
-    // val thiz = c.Expr[FeatureLike[_]](Select(c.prefix.tree, TermName("this")))
-    // val sourceFileName = c.Expr[String](Literal(Constant(c.enclosingUnit.source.path.toString)))
+    val position = c.enclosingPosition
+    val (line, column) = (position.line, position.column)
+    val fileName = position.source.file.name.split('.').head
     c.Expr(
       q"""
           new com.salesforce.op.stages.base.unary.UnaryLambdaTransformer(
-            operationName = $operationName, transformFn = $f
+            operationName = $operationName + "_" + $fileName + "_L" + $line + "C" + $column,
+            transformFn = $f
           ).setInput($in).getOutput()
       """
     )
