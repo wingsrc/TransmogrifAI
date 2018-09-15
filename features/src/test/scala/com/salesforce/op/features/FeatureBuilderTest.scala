@@ -209,13 +209,7 @@ object assertFeature extends Matchers {
       fg.tti shouldBe tti
       fg.aggregator shouldBe aggregator(wtt)
       fg.extractFn(in) shouldBe out
-
-      // TODO we should eval the code here: eval(fg.extractSource)(in)
-        /* import scala.reflect.runtime.universe
-      import scala.tools.reflect.ToolBox
-      val tb = universe.runtimeMirror(getClass.getClassLoader).mkToolBox()
-      tb.eval(tb.parse("""println("hello!")""")) */
-
+      // TODO: should eval the 'extractSource' code here. perhaps using scala.tools.reflect.ToolBox?
       fg.extractSource should not be empty
       fg.getOutputFeatureName shouldBe name
       fg.outputIsResponse shouldBe isResponse

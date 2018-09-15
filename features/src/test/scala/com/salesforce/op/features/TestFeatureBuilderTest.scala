@@ -133,7 +133,7 @@ class TestFeatureBuilderTest extends FlatSpec with TestSparkContext {
       features.map(f => f.name -> FeatureSparkTypes.sparkTypeOf(f.wtt))
 
     ds.collect().map(row => features.map(f => row.getAny(f.name))) should contain theSameElementsInOrderAs
-      expected.map{ case v: Product => v; case v => Tuple1(v) }.map(_.productIterator.toArray)
+      expected.map { case v: Product => v; case v => Tuple1(v) }.map(_.productIterator.toArray)
   }
 
 }

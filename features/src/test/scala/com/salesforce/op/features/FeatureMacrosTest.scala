@@ -44,7 +44,7 @@ class FeatureMacrosTest extends FlatSpec with TestCommon {
 
   Spec(FeatureMacros.getClass) should "have a map function" in {
     val t = FeatureMacros.map[Real, Text](feature, v => v.value.map(_.toString).toText, "map")
-    assertFeature(t)(in = 123.0, "123.0".toText, name = t.name, parents = Seq(feature))
+    assertFeature(t)(in = 123.0, out = "123.0".toText, name = t.name, parents = Seq(feature))
   }
 
 
