@@ -156,7 +156,6 @@ trait RichFeature {
       )
     }
 
-
     /**
      * Replace a matching value with a new one
      *
