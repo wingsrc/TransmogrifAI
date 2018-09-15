@@ -202,21 +202,24 @@ object assertFeature extends Matchers {
     f.wtt.tpe =:= wtt.tpe shouldBe true
     f.isRaw shouldBe parents.isEmpty
     f.typeName shouldBe wtt.tpe.typeSymbol.fullName
+    f.originStage shouldBe a[OpPipelineStage[_]]
+    val s = f.originStage.asInstanceOf[OpPipelineStage[_]]
+    s.getOutputFeatureName shouldBe name
+    s.outputIsResponse shouldBe isResponse
 
     if (f.isRaw) {
       f.originStage shouldBe a[FeatureGeneratorStage[_, _ <: FeatureType]]
       val fg = f.originStage.asInstanceOf[FeatureGeneratorStage[I, O]]
       fg.tti shouldBe tti
-      fg.aggregator shouldBe aggregator(wtt)
+      val aggr = aggregator(wtt)
+      fg.aggregator shouldBe aggr
+      fg.operationName shouldBe s"$aggr($name)"
       fg.extractFn(in) shouldBe out
       // TODO: should eval the 'extractSource' code here. perhaps using scala.tools.reflect.ToolBox?
       fg.extractSource should not be empty
-      fg.getOutputFeatureName shouldBe name
-      fg.outputIsResponse shouldBe isResponse
       fg.aggregateWindow shouldBe aggregateWindow
-      fg.uid should startWith(classOf[FeatureGeneratorStage[I, O]].getSimpleName)
+      fg.uid should startWith(classOf[FeatureGeneratorStage[_, _]].getSimpleName)
     } else {
-      f.originStage shouldBe a[OpPipelineStage[_]]
       f.originStage match {
         case t: OpTransformer =>
           val conv = implicitly[FeatureTypeSparkConverter[O]]
