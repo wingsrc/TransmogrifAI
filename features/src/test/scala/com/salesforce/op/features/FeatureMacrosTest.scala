@@ -50,12 +50,13 @@ class FeatureMacrosTest extends FlatSpec with TestCommon {
     val t = FeatureMacros.map[Real, Text](feature, _.value.map(_.toString).toText, "map")
     t.originStage.operationName shouldBe "map_FeatureMacrosTest_L50C42"
   }
-  it should "each map should has a unique operation name & uid" in {
-    val f1 = FeatureMacros.map[Real, Text](feature, _.value.map(_.toString).toText, "map")
-    val f2 = FeatureMacros.map[Text, Text](f1, _.value.map(_ + "a").toText, "map")
-    f1.originStage.operationName shouldBe "map_FeatureMacrosTest_L54C43"
-    f2.originStage.operationName shouldBe "map_FeatureMacrosTest_L55C43"
-    f1.originStage.uid should not be f2.originStage.uid
+  it should "produce a unique operation name & uid for each map" in {
+    val t = FeatureMacros.map[Real, Text](feature, _.value.map(_.toString).toText, "map")
+    val tt = FeatureMacros.map[Real, Text](feature, _.value.map(_.toString).toText, "map")
+    t.originStage.operationName shouldBe "map_FeatureMacrosTest_L54C42"
+    tt.originStage.operationName shouldBe "map_FeatureMacrosTest_L55C43"
+    t.originStage.uid should not be tt.originStage.uid
+    t should not be tt
   }
   it should "provide a binary map function" in {
     // TODO
