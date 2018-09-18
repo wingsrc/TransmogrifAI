@@ -30,55 +30,40 @@
 
 package com.salesforce.op.features
 
-import com.salesforce.op.features.types._
-
-import scala.language.experimental.macros
-import scala.reflect.macros.blackbox
-
 /**
- * Feature macros for map operations
+ * A singleton registry for lambda expressions used in feature `.map` operations
  */
-private[op] object FeatureMacros {
+private[op] object LambdaRegistry {
 
   /**
-   * Transform the feature with a given transformation function and input features
-   *
-   * @param in            input feature
-   * @param f             map function
-   * @param operationName name of the operation
-   * @return transformed feature
+   * Lambda unique source code position
    */
-  def map[O <: FeatureType, B <: FeatureType](
-    in: FeatureLike[O], f: O => B, operationName: String
-  ): FeatureLike[B] = macro FeatureMacrosImpl.map[O, B]
+  case class Position(fileName: String, line: Int, column: Int)
 
-}
-
-/**
- * Feature macros for map operations
- */
-private class FeatureMacrosImpl(val c: blackbox.Context) {
-  import c.universe._
-  // scalastyle:off
+  private val registry = new java.util.concurrent.ConcurrentHashMap[String, AnyRef]()
 
   /**
-   * Map operation macro that generates stable class names for lambdas functions
+   * Register lambda function at specified position
    */
-  def map[O <: FeatureType : c.WeakTypeTag, B <: FeatureType : c.WeakTypeTag](
-    in: c.Expr[FeatureLike[O]], f: c.Expr[O => B], operationName: c.Expr[String]
-  ): c.Expr[FeatureLike[B]] = {
-    val position = c.enclosingPosition
-    val (line, column) = (position.line, position.column)
-    val fileName = position.source.file.name.split('.').head
-    c.Expr(
-      q"""
-          new com.salesforce.op.stages.base.unary.UnaryLambdaTransformer2(
-            position = com.salesforce.op.features.LambdaRegistry($fileName, $line, $column, $f),
-            operationName = $operationName + "_" + $fileName + "_L" + $line + "C" + $column
-          ).setInput($in).getOutput()
-      """
-    )
+  def apply(fileName: String, line: Int, column: Int, fn: AnyRef): Position = {
+    val position = Position(fileName, line, column)
+    register(position, fn)
+    position
   }
-  // scalastyle:on
+  def register(pos: Position, fn: AnyRef): Unit = registry.put(pos.toString, fn)
 
+  /**
+   * Retrieve lambda function by position
+   */
+  def function1[A, B](pos: Position): A => B = apply[A => B](pos)
+  def function2[A, B, C](pos: Position): (A, B) => C = apply[(A, B) => C](pos)
+  def function3[A, B, C, D](pos: Position): (A, B, C) => D = apply[(A, B, C) => D](pos)
+  def function4[A, B, C, D, E](pos: Position): (A, B, C, D) => E = apply[(A, B, C, D) => E](pos)
+
+  private def apply[T <: AnyRef](pos: Position): T =
+    Option(registry.get(pos.toString)).map(_.asInstanceOf[T]).getOrElse(
+      throw new RuntimeException(s"Lambda registry have no function registered " +
+        s"at ${pos.fileName} line ${pos.line}, column ${pos.column}"
+      )
+    )
 }

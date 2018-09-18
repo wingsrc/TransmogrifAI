@@ -31,7 +31,8 @@
 package com.salesforce.op.stages.base.unary
 
 import com.salesforce.op.UID
-import com.salesforce.op.features.FeatureSparkTypes
+import com.salesforce.op.features.{FeatureSparkTypes, LambdaRegistry}
+import com.salesforce.op.features.LambdaRegistry.Position
 import com.salesforce.op.features.types.FeatureType
 import com.salesforce.op.stages.{OpPipelineStage1, OpTransformer}
 import org.apache.spark.ml.Transformer
@@ -135,3 +136,33 @@ final class UnaryLambdaTransformer[I <: FeatureType, O <: FeatureType]
   tto: TypeTag[O],
   ttov: TypeTag[O#Value]
 ) extends UnaryTransformer[I, O](operationName = operationName, uid = uid)
+
+
+
+/**
+ * Transformer that takes a single input feature and produces a single new output feature using the specified function.
+ * Performs row wise transformation specified in transformFn.
+ *
+ * @param operationName unique name of the operation this stage performs
+ * @param transformFn   function used to convert input to output
+ * @param uid           uid for instance
+ * @param tti           type tag for input
+ * @param tto           type tag for output
+ * @param ttov          type tag for output value
+ * @tparam I input feature type
+ * @tparam O output feature type
+ */
+private[op] final class UnaryLambdaTransformer2[I <: FeatureType, O <: FeatureType]
+(
+  val position: Position,
+  operationName: String,
+  uid: String = UID[UnaryLambdaTransformer[I, O]]
+)(
+  implicit tti: TypeTag[I],
+  tto: TypeTag[O],
+  ttov: TypeTag[O#Value]
+) extends UnaryTransformer[I, O](operationName = operationName, uid = uid) {
+
+  lazy val transformFn: I => O = LambdaRegistry.function1[I, O](position)
+
+}
