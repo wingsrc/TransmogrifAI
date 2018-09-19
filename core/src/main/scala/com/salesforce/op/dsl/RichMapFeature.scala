@@ -31,8 +31,8 @@
 package com.salesforce.op.dsl
 
 import com.salesforce.op.features.FeatureLike
-import com.salesforce.op.features.types.{BinaryMap, _}
-import com.salesforce.op.stages.base.unary.UnaryLambdaTransformer
+import com.salesforce.op.features.types._
+import com.salesforce.op.stages.LambdaTransformer
 import com.salesforce.op.stages.impl.feature._
 import com.salesforce.op.utils.text.Language
 import org.apache.spark.ml.linalg.Vectors
@@ -976,13 +976,12 @@ trait RichMapFeature {
       blackListKeys: Array[String] = Array.empty,
       trackNulls: Boolean = TransmogrifierDefaults.TrackNulls,
       others: Array[FeatureLike[EmailMap]] = Array.empty
-    ): FeatureLike[OPVector] = {
+    )(implicit pos: sourcecode.Position): FeatureLike[OPVector] = {
       val domains: Array[FeatureLike[PickListMap]] = (f +: others).map { e =>
         val transformer = new OPMapTransformer[Email, PickList, EmailMap, PickListMap](
           operationName = "emailToPickListMap",
-          transformer = new UnaryLambdaTransformer[Email, PickList](
-            operationName = "emailToPickList",
-            transformFn = _.domain.toPickList
+          transformer = LambdaTransformer.unary[Email, PickList](
+            _.domain.toPickList, operationName = "emailToPickList"
           )
         )
         transformer.setInput(e).getOutput()

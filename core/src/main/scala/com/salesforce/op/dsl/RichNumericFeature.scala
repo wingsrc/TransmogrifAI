@@ -33,7 +33,6 @@ package com.salesforce.op.dsl
 import com.salesforce.op.features.FeatureLike
 import com.salesforce.op.features.types._
 import com.salesforce.op.stages.base.binary.BinaryLambdaTransformer
-import com.salesforce.op.stages.base.unary.UnaryLambdaTransformer
 import com.salesforce.op.stages.impl.feature._
 import com.salesforce.op.stages.impl.preparators.{CorrelationType, CorrelationExclusion, SanityChecker}
 import com.salesforce.op.stages.impl.regression.IsotonicRegressionCalibrator

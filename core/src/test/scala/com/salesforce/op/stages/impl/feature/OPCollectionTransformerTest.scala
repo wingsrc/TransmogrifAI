@@ -31,7 +31,7 @@
 package com.salesforce.op.stages.impl.feature
 
 import com.salesforce.op.features.types._
-import com.salesforce.op.stages.base.unary.UnaryLambdaTransformer
+import com.salesforce.op.stages.LambdaTransformer
 import com.salesforce.op.test.{TestFeatureBuilder, TestSparkContext}
 import com.salesforce.op.utils.spark.RichDataset._
 import org.junit.runner.RunWith
@@ -63,11 +63,9 @@ class OPCollectionTransformerTest extends FlatSpec with TestSparkContext {
   )
 
   Spec[OPCollectionTransformer[_, _, _, _]] should "be able to turn an EmailMap into an IntegralMap" in {
-    val myBaseTransformer = new UnaryLambdaTransformer[Email, Integral](
-      operationName = "testUnary",
-      transformFn = (input: Email) => input.value.map(_.length).toIntegral
+    val myBaseTransformer = LambdaTransformer.unary[Email, Integral](
+      (input: Email) => input.value.map(_.length).toIntegral, operationName = "testUnary"
     )
-
     val mapWrap = new OPMapTransformer[Email, Integral, EmailMap, IntegralMap](
       transformer = myBaseTransformer,
       operationName = "testUnaryMapWrap").setInput(top)
@@ -85,7 +83,7 @@ class OPCollectionTransformerTest extends FlatSpec with TestSparkContext {
   }
 
   it should "throw an error in incompatible types" in {
-    val t = new UnaryLambdaTransformer[Email, Real]("testUnary", transformFn = _.value.map(_.length).toReal)
+    val t = LambdaTransformer.unary[Email, Real](_.value.map(_.length).toReal, "testUnary")
     the[IllegalArgumentException] thrownBy {
       new OPMapTransformer[Email, Real, EmailMap, IntegralMap](t, operationName = "map")
     }
@@ -99,11 +97,7 @@ class OPCollectionTransformerTest extends FlatSpec with TestSparkContext {
 
   it should "be able to turn an EmailMap into an IntegralMap even if the supplied" +
     "UnaryTransformer returns Nones" in {
-    val myBaseTransformer = new UnaryLambdaTransformer[Email, Integral](
-      operationName = "testUnary",
-      transformFn = (input: Email) => Integral(None)
-    )
-
+    val myBaseTransformer = LambdaTransformer.unary[Email, Integral](_ => Integral.empty, operationName = "testUnary")
     val mapWrap = new OPMapTransformer[Email, Integral, EmailMap, IntegralMap](
       transformer = myBaseTransformer,
       operationName = "testUnaryMapWrap").setInput(top)
@@ -122,11 +116,9 @@ class OPCollectionTransformerTest extends FlatSpec with TestSparkContext {
   }
 
   it should "be able to turn a TextList into another TextList" in {
-    val myBaseTransformer = new UnaryLambdaTransformer[Text, Text](
-      operationName = "testUnary",
-      transformFn = (input: Text) => input.value.map(_.toUpperCase).toText
+    val myBaseTransformer = LambdaTransformer.unary[Text, Text](
+      (input: Text) => input.value.map(_.toUpperCase).toText, operationName = "testUnary"
     )
-
     val mapWrap = new OPListTransformer[Text, Text, TextList, TextList](
       transformer = myBaseTransformer,
       operationName = "testUnaryMapWrap").setInput(f1)
@@ -143,23 +135,18 @@ class OPCollectionTransformerTest extends FlatSpec with TestSparkContext {
   }
 
   it should "be able to turn a MultiPickList into another one, given different unary transformers" in {
-    val unaryTextText = new UnaryLambdaTransformer[Text, Text](
-      operationName = "unaryTextText",
-      transformFn = (input: Text) => input.value.map(_.toUpperCase).toText
+    val unaryTextText = LambdaTransformer.unary[Text, Text](
+      (input: Text) => input.value.map(_.toUpperCase).toText, operationName = "unaryTextText"
     )
-    val unaryEmailText = new UnaryLambdaTransformer[Email, Text](
-      operationName = "unaryEmailText",
-      transformFn = (input: Email) => input.value.map(_.toUpperCase).toText
+    val unaryEmailText = LambdaTransformer.unary[Email, Text](
+      (input: Email) => input.value.map(_.toUpperCase).toText, operationName = "unaryEmailText"
     )
-    val unaryTextEmail = new UnaryLambdaTransformer[Text, Email](
-      operationName = "unaryEmailText",
-      transformFn = (input: Text) => input.value.map(_.toLowerCase).toEmail
+    val unaryTextEmail = LambdaTransformer.unary[Text, Email](
+      (input: Text) => input.value.map(_.toLowerCase).toEmail, operationName = "unaryTextEmail"
     )
-    val unaryURLPicklist = new UnaryLambdaTransformer[URL, PickList](
-      operationName = "unaryURLPicklist",
-      transformFn = (input: URL) => input.value.map(_.toLowerCase).toPickList
+    val unaryURLPicklist = LambdaTransformer.unary[URL, PickList](
+      (input: URL) => input.value.map(_.toLowerCase).toPickList, operationName = "unaryURLPicklist"
     )
-
     val (testData, multiPicklistCol) = TestFeatureBuilder("multiPickList",
       Seq(
         Set("b", "C", "G").toMultiPickList,
@@ -231,16 +218,10 @@ class OPCollectionTransformerTest extends FlatSpec with TestSparkContext {
   it should "fail to create a unary MultiPickList transformer if the supplied unary transformer does not map from" +
     "a Text to Text type" in {
 
-    val unaryTextIntegral = new UnaryLambdaTransformer[Text, Integral](
-      operationName = "unaryTextText",
-      transformFn = (input: Text) => Integral(input.hashCode)
-    )
-
     an[IllegalArgumentException] should be thrownBy {
       new OPSetTransformer[Text, Integral, MultiPickList, MultiPickList](
-        transformer = new UnaryLambdaTransformer[Text, Integral](
-          operationName = "unaryTextText",
-          transformFn = (input: Text) => Integral(input.hashCode)
+        transformer = LambdaTransformer.unary[Text, Integral](
+          (input: Text) => Integral(input.hashCode), operationName = "unaryTextTextWrap"
         ),
         operationName = "unaryTextTextWrap"
       )
@@ -248,9 +229,8 @@ class OPCollectionTransformerTest extends FlatSpec with TestSparkContext {
 
     an[IllegalArgumentException] should be thrownBy {
       new OPSetTransformer[Real, Text, MultiPickList, MultiPickList](
-        transformer = new UnaryLambdaTransformer[Real, Text](
-          operationName = "unaryRealText",
-          transformFn = (input: Real) => FeatureTypeDefaults.Text
+        transformer = LambdaTransformer.unary[Real, Text](
+          (input: Real) => FeatureTypeDefaults.Text, operationName = "unaryRealText"
         ),
         operationName = "unaryRealTextWrap"
       )
@@ -260,9 +240,8 @@ class OPCollectionTransformerTest extends FlatSpec with TestSparkContext {
   it should "fail to create collection transformers from a UnaryTransformer that already involves collections" in {
     an[IllegalArgumentException] should be thrownBy {
       new OPSetTransformer[MultiPickList, MultiPickList, MultiPickList, MultiPickList](
-        transformer = new UnaryLambdaTransformer[MultiPickList, MultiPickList](
-          operationName = "unaryMPMP",
-          transformFn = (input: MultiPickList) => input
+        transformer = LambdaTransformer.unary[MultiPickList, MultiPickList](
+          (input: MultiPickList) => input, operationName = "unaryMPMP"
         ),
         operationName = "unaryMPMPWrap"
       )
@@ -270,9 +249,8 @@ class OPCollectionTransformerTest extends FlatSpec with TestSparkContext {
 
     an[IllegalArgumentException] should be thrownBy {
       new OPMapTransformer[RealMap, TextMap, RealMap, PhoneMap](
-        transformer = new UnaryLambdaTransformer[RealMap, TextMap](
-          operationName = "unaryRTRP",
-          transformFn = (input: RealMap) => FeatureTypeDefaults.TextMap
+        transformer = LambdaTransformer.unary[RealMap, TextMap](
+          (input: RealMap) => FeatureTypeDefaults.TextMap, operationName = "unaryRTRP"
         ),
         operationName = "unaryRTRPWrap"
       )
@@ -280,9 +258,8 @@ class OPCollectionTransformerTest extends FlatSpec with TestSparkContext {
 
     an[IllegalArgumentException] should be thrownBy {
       new OPListTransformer[TextList, DateTimeList, TextList, DateList](
-        transformer = new UnaryLambdaTransformer[TextList, DateTimeList](
-          operationName = "unaryRTRP",
-          transformFn = (input: TextList) => FeatureTypeDefaults.DateTimeList
+        transformer = LambdaTransformer.unary[TextList, DateTimeList](
+          (input: TextList) => FeatureTypeDefaults.DateTimeList, operationName = "unaryRTRP"
         ),
         operationName = "unaryRTRPWrap"
       )

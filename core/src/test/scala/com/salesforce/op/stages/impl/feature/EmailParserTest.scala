@@ -32,7 +32,7 @@ package com.salesforce.op.stages.impl.feature
 
 import com.salesforce.op._
 import com.salesforce.op.features.types._
-import com.salesforce.op.stages.base.unary.UnaryLambdaTransformer
+import com.salesforce.op.stages.base.unary.UnaryTransformer
 import com.salesforce.op.test.{TestFeatureBuilder, _}
 import com.salesforce.op.utils.spark.RichDataset._
 import org.junit.runner.RunWith
@@ -56,7 +56,7 @@ class EmailParserTest extends FlatSpec with TestCommon with TestSparkContext {
 
   "Email Extraction" should "extract prefix from simple email addresses" in {
     val prefix = email.toEmailPrefix
-    val result = prefix.originStage.asInstanceOf[UnaryLambdaTransformer[Email, Text]].transform(df)
+    val result = prefix.originStage.asInstanceOf[UnaryTransformer[Email, Text]].transform(df)
 
     result.collect(prefix) should contain theSameElementsInOrderAs
       Seq(Text("test"), Text.empty, Text.empty, Text.empty, Text.empty, Text.empty, Text.empty, Text("first.last"))
@@ -64,7 +64,7 @@ class EmailParserTest extends FlatSpec with TestCommon with TestSparkContext {
 
   it should "extract domain from simple email addresses" in {
     val domain = email.toEmailDomain
-    val result = domain.originStage.asInstanceOf[UnaryLambdaTransformer[Email, Text]].transform(df)
+    val result = domain.originStage.asInstanceOf[UnaryTransformer[Email, Text]].transform(df)
 
     result.collect(domain) should contain theSameElementsInOrderAs
       Seq(Text("example.com"), Text.empty, Text.empty, Text.empty, Text.empty, Text.empty, Text.empty,

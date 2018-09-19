@@ -33,7 +33,7 @@ package com.salesforce.op.stages
 import com.salesforce.op.UID
 import com.salesforce.op.features.LambdaRegistry
 import com.salesforce.op.features.types.FeatureType
-import com.salesforce.op.stages.base.unary.{UnaryLambdaTransformer2, UnaryTransformer}
+import com.salesforce.op.stages.base.unary.{UnaryLambdaTransformer, UnaryTransformer}
 
 import scala.reflect.runtime.universe.TypeTag
 
@@ -51,16 +51,18 @@ case object LambdaTransformer {
   def unary[A <: FeatureType : TypeTag, B <: FeatureType : TypeTag](
     fn: A => B,
     operationName: String,
-    uid: String = UID[UnaryLambdaTransformer2[A, B]]
+    uid: String = UID[UnaryLambdaTransformer[A, B]]
   )(implicit ttov: TypeTag[B#Value], pos: sourcecode.Position): UnaryTransformer[A, B] = {
     val lambdaPosition = new LambdaPosition(pos)
     LambdaRegistry.register[A, B](lambdaPosition, fn)
-    new UnaryLambdaTransformer2[A, B](
+    new UnaryLambdaTransformer[A, B](
       position = lambdaPosition,
       operationName = operationNameWithPosition(operationName, lambdaPosition),
       uid = uid
     )
   }
+
+  //TODO: binary, ternary, quaternary, sequence etc.
 
   private def operationNameWithPosition(operationName: String, pos: LambdaPosition): String = {
     s"${operationName}_${pos.fileName}_L${pos.line}C${pos.column}"

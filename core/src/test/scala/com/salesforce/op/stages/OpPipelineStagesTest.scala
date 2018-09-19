@@ -32,10 +32,10 @@ package com.salesforce.op.stages
 
 import com.salesforce.op.features.types._
 import com.salesforce.op.features.{OPFeature, TransientFeature}
-import com.salesforce.op.stages.base.unary.{UnaryLambdaTransformer, UnaryTransformer}
+import com.salesforce.op.stages.base.unary.UnaryTransformer
 import com.salesforce.op.test.PassengerSparkFixtureTest
-import org.apache.spark.ml.param.ParamMap
 import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.param.ParamMap
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{BeforeAndAfterEach, FlatSpec}

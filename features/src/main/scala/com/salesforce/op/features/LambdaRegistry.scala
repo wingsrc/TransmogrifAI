@@ -57,6 +57,8 @@ private[op] object LambdaRegistry {
 
   /**
    * Retrieve lambda function at position
+   *
+   * @param pos unique lambda function source code position
    * @throws RuntimeException if lambda function is registered as specified position
    */
   def function1[A, B](pos: LambdaPosition): A => B = apply[A => B](pos)
