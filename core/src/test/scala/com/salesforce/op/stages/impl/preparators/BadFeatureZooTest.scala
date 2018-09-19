@@ -561,9 +561,6 @@ class BadFeatureZooTest extends FlatSpec with TestSparkContext with Logging {
       case _ => 0.0.toRealNN
     }).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
 
-    println(erBinned.originStage.operationName)
-    println(labelData.originStage.operationName)
-
     val genFeatureVector = Seq(rawBinary, rawCurrency, rawER, erBinned).transmogrify()
     val checkedFeatures = new SanityChecker()
       .setCheckSample(1.0)
