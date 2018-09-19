@@ -8,7 +8,12 @@ dependencies {
     compile "com.daodecode:scalaj-collection_$scalaVersion:$scalajCollVersion"
 
     // Sourcecode macros
-    compile "com.lihaoyi:sourcecode_$scalaVersion:$sourceCodeVersion"
+    // TODO: remove this version of Sourcecode once the release is official
+    // compile "com.lihaoyi:sourcecode_$scalaVersion:$sourceCodeVersion"
+    compile ("com.github.tovbinm:sourcecode:d3a698d91c") {
+        exclude group: 'com.github.tovbinm.sourcecode', module: 'sourcecode_native0.3_2.11'
+        exclude group: 'com.github.tovbinm.sourcecode', module: 'sourcecode_sjs0.6_2.11'
+    }
 
     // Needed for Url validation
     compile "commons-validator:commons-validator:$commonsValidatorVersion"

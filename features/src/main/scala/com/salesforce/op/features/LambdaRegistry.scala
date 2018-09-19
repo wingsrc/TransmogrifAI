@@ -44,6 +44,8 @@ private[op] object LambdaRegistry {
    */
   private val registry = new ConcurrentHashMap[String, AnyRef]()
 
+  private def keyOf(p: LambdaPosition) = s"${p.fileName}:L${p.line}C${p.column}"
+
   /**
    * Register lambda expression at position
    */
@@ -51,7 +53,7 @@ private[op] object LambdaRegistry {
   def register[A, B, C](pos: LambdaPosition, fn: (A, B) => C): Unit = doRegister(pos, fn)
   def register[A, B, C, D](pos: LambdaPosition, fn: (A, B, C) => D): Unit = doRegister(pos, fn)
   def register[A, B, C, D, E](pos: LambdaPosition, fn: (A, B, C, D) => E): Unit = doRegister(pos, fn)
-  private def doRegister(pos: LambdaPosition, fn: AnyRef): Unit = registry.put(pos.toString, fn)
+  private def doRegister(pos: LambdaPosition, fn: AnyRef): Unit = registry.put(keyOf(pos), fn)
 
   /**
    * Retrieve lambda function at position
@@ -63,7 +65,7 @@ private[op] object LambdaRegistry {
   def function4[A, B, C, D, E](pos: LambdaPosition): (A, B, C, D) => E = apply[(A, B, C, D) => E](pos)
 
   private def apply[T <: AnyRef](pos: LambdaPosition): T =
-    Option(registry.get(pos.toString)).map(_.asInstanceOf[T]).getOrElse(
+    Option(registry.get(keyOf(pos))).map(_.asInstanceOf[T]).getOrElse(
       throw new RuntimeException("Lambda registry have no function registered on position: " +
         s"file ${pos.fileName}, line ${pos.line}, column ${pos.column}"
       )

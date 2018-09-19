@@ -20,6 +20,8 @@ allprojects {
     repositories {
         mavenCentral()
         jcenter()
+        // TODO: remove once Sourcecode library release is official
+        maven { url 'https://jitpack.io' }
     }
 }
 

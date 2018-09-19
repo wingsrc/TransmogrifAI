@@ -31,7 +31,7 @@
 package com.salesforce.op.stages.base.unary
 
 import com.salesforce.op.features.types._
-import com.salesforce.op.stages.{LambdaPosition, LambdaTransformer}
+import com.salesforce.op.stages.LambdaTransformer
 import com.salesforce.op.test.{OpTransformerSpec, TestFeatureBuilder}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -49,7 +49,6 @@ class UnaryTransformerTest extends OpTransformerSpec[Real, UnaryTransformer[Real
    * [[OpTransformer]] instance to be tested
    */
   val transformer = LambdaTransformer.unary[Real, Real](
-    pos = LambdaPosition(this.getClass.getSimpleName, 0, 0),
     fn = r => r.v.map(_ * 2.0).toReal,
     operationName = "unary"
   ).setInput(f1)

@@ -49,15 +49,15 @@ case object LambdaTransformer {
    * Performs row wise transformation specified in transformFn.
    */
   def unary[A <: FeatureType : TypeTag, B <: FeatureType : TypeTag](
-    pos: LambdaPosition,
     fn: A => B,
     operationName: String,
     uid: String = UID[UnaryLambdaTransformer2[A, B]]
-  )(implicit ttov: TypeTag[B#Value]): UnaryTransformer[A, B] = {
-    LambdaRegistry.register[A, B](pos, fn)
+  )(implicit ttov: TypeTag[B#Value], pos: sourcecode.Position): UnaryTransformer[A, B] = {
+    val lambdaPosition = new LambdaPosition(pos)
+    LambdaRegistry.register[A, B](lambdaPosition, fn)
     new UnaryLambdaTransformer2[A, B](
-      position = pos,
-      operationName = operationNameWithPosition(operationName, pos),
+      position = lambdaPosition,
+      operationName = operationNameWithPosition(operationName, lambdaPosition),
       uid = uid
     )
   }
@@ -70,4 +70,6 @@ case object LambdaTransformer {
 /**
  * Unique source code position for lambda function
  */
-case class LambdaPosition(fileName: String, line: Int, column: Int)
+case class LambdaPosition(fileName: String, line: Int, column: Int) {
+  def this(pos: sourcecode.Position) = this(pos.file.split('/').last.split('.').head, pos.line, pos.column)
+}
