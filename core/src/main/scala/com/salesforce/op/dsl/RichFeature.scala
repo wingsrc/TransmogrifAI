@@ -39,7 +39,7 @@ import com.salesforce.op.stages.base.unary.UnaryLambdaTransformer
 import com.salesforce.op.stages.impl.feature.{AliasTransformer, ToOccurTransformer}
 import com.salesforce.op.stages.sparkwrappers.generic.SparkWrapperParams
 
-import scala.reflect.runtime.universe.TypeTag
+import scala.reflect.runtime.universe.{typeTag, TypeTag}
 
 trait RichFeature {
 
@@ -164,7 +164,7 @@ trait RichFeature {
      * @return feature of type A
      */
     def replaceWith(oldVal: A, newVal: A): FeatureLike[A] = {
-      feature.map[A](a => if (oldVal == a) newVal else a)
+      feature.map[A]((a: A) => if (oldVal == a) newVal else a)(typeTag[A], ftt)
     }
 
     /**
@@ -176,9 +176,7 @@ trait RichFeature {
      * @return feature of type A
      */
     def filter(p: A => Boolean, default: A): FeatureLike[A] = {
-      feature.transformWith(
-        new UnaryLambdaTransformer[A, A](operationName = "filter", transformFn = a => if (p(a)) a else default)
-      )
+      feature.map[A]((a: A) => if (p(a)) a else default, operationName = "filter")(typeTag[A], ftt)
     }
 
     /**
@@ -190,7 +188,7 @@ trait RichFeature {
      * @return feature of type A
      */
     def filterNot(p: A => Boolean, default: A): FeatureLike[A] = {
-      filter(a => !p(a), default)
+      feature.map[A]((a: A) => if (!p(a)) a else default, operationName = "filterNot")(typeTag[A], ftt)
     }
 
     /**
@@ -203,12 +201,7 @@ trait RichFeature {
      */
     def collect[B <: FeatureType : TypeTag](default: B)(pf: PartialFunction[A, B])
       (implicit ttb: TypeTag[B#Value]): FeatureLike[B] = {
-      feature.transformWith(
-        new UnaryLambdaTransformer[A, B](
-          operationName = "collect",
-          transformFn = a => if (pf.isDefinedAt(a)) pf(a) else default
-        )
-      )
+      feature.map[B]((a: A) => if (pf.isDefinedAt(a)) pf(a) else default, operationName = "collect")
     }
 
     /**
@@ -218,12 +211,7 @@ trait RichFeature {
      * @return feature[Binary]
      */
     def exists(p: A => Boolean): FeatureLike[Binary] = {
-      feature.transformWith(
-        new UnaryLambdaTransformer[A, Binary](
-          operationName = "exists",
-          transformFn = a => new Binary(p(a))
-        )
-      )
+      feature.map[Binary]((a: A) => new Binary(p(a)), operationName = "exists")
     }
 
     /**

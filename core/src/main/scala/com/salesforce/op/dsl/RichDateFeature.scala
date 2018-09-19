@@ -52,9 +52,7 @@ trait RichDateFeature {
      * @return
      */
     def toDateList(): FeatureLike[DateList] = {
-      f.transformWith(
-        new UnaryLambdaTransformer[Date, DateList](operationName = "dateToList", _.value.toSeq.toDateList)
-      )
+      f.map[DateList](_.value.toSeq.toDateList, operationName = "dateToList")
     }
 
     /**
@@ -123,12 +121,7 @@ trait RichDateFeature {
      * @return
      */
     def toDateTimeList(): FeatureLike[DateTimeList] = {
-      f.transformWith(
-        new UnaryLambdaTransformer[DateTime, DateTimeList](
-          operationName = "dateTimeToList",
-          _.value.toSeq.toDateTimeList
-        )
-      )
+      f.map[DateTimeList](_.value.toSeq.toDateTimeList, operationName = "dateTimeToList")
     }
 
     /**

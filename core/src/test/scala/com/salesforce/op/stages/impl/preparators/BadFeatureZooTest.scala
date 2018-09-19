@@ -33,7 +33,6 @@ package com.salesforce.op.stages.impl.preparators
 import com.salesforce.op.{OpWorkflow, UID}
 import com.salesforce.op.features.types._
 import com.salesforce.op.features.{Feature, FeatureLike}
-import com.salesforce.op.stages.base.unary.UnaryLambdaTransformer
 import com.salesforce.op.stages.base.binary.BinaryLambdaTransformer
 import com.salesforce.op.stages.impl.feature.{Inclusion, TransmogrifierDefaults}
 import com.salesforce.op.test._
@@ -76,14 +75,10 @@ class BadFeatureZooTest extends FlatSpec with TestSparkContext with Logging {
       TestFeatureBuilder("city", "country", "picklist", "currency", generatedData)
 
     // Construct a label that we know is highly biased from the pickList data to check if SanityChecker detects it
-    val labelTransformer = new UnaryLambdaTransformer[PickList, RealNN](operationName = "labelFunc",
-      transformFn = p => p.value match {
-        case Some("A") | Some("B") | Some("C") => RealNN(1.0)
-        case _ => RealNN(0.0)
-      }
-    )
-    val labelData = labelTransformer.setInput(rawPickList).getOutput().asInstanceOf[Feature[RealNN]]
-      .copy(isResponse = true)
+    val labelData = rawPickList.map[RealNN](p => p.value match {
+      case Some("A") | Some("B") | Some("C") => RealNN(1.0)
+      case _ => RealNN(0.0)
+    }).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
 
     val genFeatureVector = Seq(rawCity, rawCountry, rawPickList, rawCurrency).transmogrify()
     val checkedFeatures = new SanityChecker()
@@ -109,14 +104,10 @@ class BadFeatureZooTest extends FlatSpec with TestSparkContext with Logging {
       .withProbabilityOfEmpty(0.5).limit(200) ++ RandomReal.uniform[Real](minValue = 40.0, maxValue = 70.0)
       .withProbabilityOfEmpty(0.0).limit(100)
     val (rawDF, rawAge) = TestFeatureBuilder("age", ageData)
-    val labelTransformer = new UnaryLambdaTransformer[Real, RealNN](operationName = "labelFunc",
-      transformFn = p => p.value match {
-        case Some(x) if Some(x).get > 30.0 => RealNN(1.0)
-        case _ => RealNN(0.0)
-      }
-    )
-    val labelData = labelTransformer.setInput(rawAge).getOutput().asInstanceOf[Feature[RealNN]]
-      .copy(isResponse = true)
+    val labelData = rawAge.map[RealNN](p => p.value match {
+      case Some(x) if x > 30.0 => RealNN(1.0)
+      case _ => RealNN(0.0)
+    }).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
     rawAge.bucketize(trackNulls = true,
       splits = Array(Double.NegativeInfinity, 30.0, Double.PositiveInfinity),
       splitInclusion = Inclusion.Right
@@ -150,15 +141,11 @@ class BadFeatureZooTest extends FlatSpec with TestSparkContext with Logging {
       .withProbabilityOfEmpty(0.5).limit(200) ++ RandomReal.uniform[Real](minValue = 40.0, maxValue = 70.0)
       .withProbabilityOfEmpty(0.0).limit(100)
     val (rawDF, rawAge) = TestFeatureBuilder("age", ageData)
-    val labelTransformer = new UnaryLambdaTransformer[Real, RealNN](operationName = "labelFunc",
-      transformFn = p => p.value match {
-        case Some(x) if Some(x).get > 30.0 => RealNN(1.0)
-        case Some(_) => RealNN(0.0)
-        case _ => RandomIntegral.integrals(0, 2).withProbabilityOfEmpty(0.0).limit(1).head.toDouble.get.toRealNN
-      }
-    )
-    val labelData = labelTransformer.setInput(rawAge).getOutput().asInstanceOf[Feature[RealNN]]
-      .copy(isResponse = true)
+    val labelData = rawAge.map[RealNN](p => p.value match {
+      case Some(x) if x > 30.0 => RealNN(1.0)
+      case Some(_) => RealNN(0.0)
+      case _ => RandomIntegral.integrals(0, 2).withProbabilityOfEmpty(0.0).limit(1).head.toDouble.get.toRealNN
+    }).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
     val ageBuckets = rawAge.autoBucketize(labelData, trackNulls = true)
     val genFeatureVector = Seq(ageBuckets,
       rawAge.vectorize(fillValue = 0.0, fillWithMean = true, trackNulls = true)
@@ -220,14 +207,10 @@ class BadFeatureZooTest extends FlatSpec with TestSparkContext with Logging {
     val (rawDF, rawCity, rawCountry, rawPickList, rawCurrency) =
       TestFeatureBuilder("city", "country", "picklist", "currency", generatedData)
     // Construct a label that we know is highly biased from the pickList data to check if SanityChecker detects it
-    val labelTransformer = new UnaryLambdaTransformer[PickList, RealNN](operationName = "labelFunc",
-      transformFn = p => p.value match {
-        case Some(_) => RealNN(1.0)
-        case _ => RealNN(0.0)
-      }
-    )
-    val labelData = labelTransformer.setInput(rawPickList).getOutput().asInstanceOf[Feature[RealNN]]
-      .copy(isResponse = true)
+    val labelData = rawPickList.map[RealNN]({
+      case SomeValue(_) => RealNN(1.0)
+      case _ => RealNN(0.0)
+    }).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
 
     val genFeatureVector = Seq(rawCity, rawCountry, rawPickList, rawCurrency).transmogrify()
     val checkedFeatures = new SanityChecker()
@@ -265,16 +248,12 @@ class BadFeatureZooTest extends FlatSpec with TestSparkContext with Logging {
       TestFeatureBuilder("city", "country", "picklist", "currency", generatedData)
 
     // Construct a label that we know is highly biased from the pickList data to check if SanityChecker detects it
-    val labelTransformer = new UnaryLambdaTransformer[PickList, RealNN](operationName = "labelFunc",
-      transformFn = p => p.value match {
-        case Some("A") | Some("B") => RealNN(1.0)
-        case Some("C") | Some("D") => RealNN(2.0)
-        case Some("E") => RealNN(3.0)
-        case _ => RealNN(0.0)
-      }
-    )
-    val labelData = labelTransformer.setInput(rawPickList).getOutput().asInstanceOf[Feature[RealNN]]
-      .copy(isResponse = true)
+    val labelData = rawPickList.map[RealNN](p => p.value match {
+      case Some("A") | Some("B") => RealNN(1.0)
+      case Some("C") | Some("D") => RealNN(2.0)
+      case Some("E") => RealNN(3.0)
+      case _ => RealNN(0.0)
+    }).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
 
     val genFeatureVector = Seq(rawCity, rawCountry, rawPickList, rawCurrency).transmogrify()
     val checkedFeatures = new SanityChecker()
@@ -311,14 +290,10 @@ class BadFeatureZooTest extends FlatSpec with TestSparkContext with Logging {
       TestFeatureBuilder("city", "country", "picklist", "currency", generatedData)
 
     // Construct a label that we know is highly biased from the pickList data to check if SanityChecker detects it
-    val labelTransformer = new UnaryLambdaTransformer[PickList, RealNN](operationName = "labelFunc",
-      transformFn = p => p.value match {
-        case Some("A") | Some("B") | Some("C") => RealNN(1.0)
-        case _ => RealNN(0.0)
-      }
-    )
-    val labelData = labelTransformer.setInput(rawPickList).getOutput().asInstanceOf[Feature[RealNN]]
-      .copy(isResponse = true)
+    val labelData = rawPickList.map[RealNN](p => p.value match {
+      case Some("A") | Some("B") | Some("C") => RealNN(1.0)
+      case _ => RealNN(0.0)
+    }).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
 
     val genFeatureVector = Seq(rawCity, rawCountry, rawPickList, rawCurrency).transmogrify()
     val checkedFeatures = new SanityChecker()
@@ -355,14 +330,10 @@ class BadFeatureZooTest extends FlatSpec with TestSparkContext with Logging {
       TestFeatureBuilder("city", "multipicklist", "picklist", "integralMap", generatedData)
 
     // Construct a label that we know is highly biased from the pickList data to check if SanityChecker detects it
-    val labelTransformer = new UnaryLambdaTransformer[PickList, RealNN](operationName = "labelFunc",
-      transformFn = p => p.value match {
-        case Some("A") | Some("B") | Some("C") => RealNN(1.0)
-        case _ => RealNN(0.0)
-      }
-    )
-    val labelData = labelTransformer.setInput(rawPickList).getOutput().asInstanceOf[Feature[RealNN]]
-      .copy(isResponse = true)
+    val labelData = rawPickList.map[RealNN](p => p.value match {
+      case Some("A") | Some("B") | Some("C") => RealNN(1.0)
+      case _ => RealNN(0.0)
+    }).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
 
     val genFeatureVector = Seq(rawCity, rawCountry, rawPickList, rawIntegralMap).transmogrify()
     val checkedFeatures = new SanityChecker()
@@ -404,14 +375,10 @@ class BadFeatureZooTest extends FlatSpec with TestSparkContext with Logging {
       TestFeatureBuilder("city", "real", "currency", "expectedRevenue", generatedData)
 
     // Construct a label that we know is highly biased from the pickList data to check if SanityChecker detects it
-    val labelTransformer = new UnaryLambdaTransformer[Real, RealNN](operationName = "labelFunc",
-      transformFn = r => r.value match {
-        case Some(v) => RealNN(1.0)
-        case _ => RealNN(0.0)
-      }
-    )
-    val labelData = labelTransformer.setInput(rawReal).getOutput().asInstanceOf[Feature[RealNN]]
-      .copy(isResponse = true)
+    val labelData = rawReal.map[RealNN]({
+      case SomeValue(_) => 1.0.toRealNN
+      case _ => 0.0.toRealNN
+    }).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
 
     val genFeatureVector = Seq(rawCity, rawReal, rawCurrency, rawER).transmogrify()
     val checkedFeatures = new SanityChecker()
@@ -446,14 +413,10 @@ class BadFeatureZooTest extends FlatSpec with TestSparkContext with Logging {
       TestFeatureBuilder("city", "real", "text", generatedData)
 
     // Construct a label that we know is highly biased from the pickList data to check if SanityChecker detects it
-    val labelTransformer = new UnaryLambdaTransformer[Text, RealNN](operationName = "labelFunc",
-      transformFn = r => r.value match {
-        case Some(v) => RealNN(1.0)
-        case _ => RealNN(0.0)
-      }
-    )
-    val labelData = labelTransformer.setInput(rawText).getOutput().asInstanceOf[Feature[RealNN]]
-      .copy(isResponse = true)
+    val labelData = rawText.map[RealNN]({
+      case SomeValue(_) => 1.0.toRealNN
+      case _ => 0.0.toRealNN
+    }).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
 
     val genFeatureVector = Seq(rawCity, rawReal, rawText).transmogrify()
     val checkedFeatures = new SanityChecker()
@@ -480,12 +443,9 @@ class BadFeatureZooTest extends FlatSpec with TestSparkContext with Logging {
       TestFeatureBuilder("city", "real", "textmap", generatedData2)
 
     // Construct a label that we know is highly biased from the pickList data to check if SanityChecker detects it
-    val labelMapTransformer = new UnaryLambdaTransformer[TextMap, RealNN](operationName = "labelFunc",
-      transformFn = r => if (r.value.contains("k1")) RealNN(1.0) else RealNN(0.0)
-    )
-
-    val labelData2 = labelMapTransformer.setInput(rawTextMap).getOutput().asInstanceOf[Feature[RealNN]]
-      .copy(isResponse = true)
+    val labelData2 = rawTextMap.map[RealNN](r =>
+      if (r.value.contains("k1")) RealNN(1.0) else RealNN(0.0)
+    ).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
 
     val genFeatureVector2 = Seq(rawCity2, rawReal2, rawTextMap).transmogrify()
     val checkedFeatures2 = new SanityChecker()
@@ -519,14 +479,10 @@ class BadFeatureZooTest extends FlatSpec with TestSparkContext with Logging {
       TestFeatureBuilder("city", "real", "text", generatedData)
 
     // Construct a label that we know is highly biased from the pickList data to check if SanityChecker detects it
-    val labelTransformer = new UnaryLambdaTransformer[Text, RealNN](operationName = "labelFunc",
-      transformFn = r => r.value match {
-        case Some("alpha") => RealNN(1.0)
-        case _ => RealNN(0.0)
-      }
-    )
-    val labelData = labelTransformer.setInput(rawText).getOutput().asInstanceOf[Feature[RealNN]]
-      .copy(isResponse = true)
+    val labelData = rawText.map[RealNN](p => p.value match {
+      case Some("alpha") => RealNN(1.0)
+      case _ => RealNN(0.0)
+    }).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
 
     val genFeatureVector = Seq(rawCity, rawReal, rawText).transmogrify()
     val checkedFeatures = new SanityChecker()
@@ -554,12 +510,9 @@ class BadFeatureZooTest extends FlatSpec with TestSparkContext with Logging {
       TestFeatureBuilder("city", "real", "textmap", generatedData2)
 
     // Construct a label that we know is highly biased from the pickList data to check if SanityChecker detects it
-    val labelMapTransformer = new UnaryLambdaTransformer[TextMap, RealNN](operationName = "labelFunc",
-      transformFn = r => if (r.value.get("k0").contains("alpha")) RealNN(1.0) else RealNN(0.0)
-    )
-
-    val labelData2 = labelMapTransformer.setInput(rawTextMap).getOutput().asInstanceOf[Feature[RealNN]]
-      .copy(isResponse = true)
+    val labelData2 = rawTextMap.map[RealNN](r =>
+      if (r.value.get("k0").contains("alpha")) RealNN(1.0) else RealNN(0.0)
+    ).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
 
     val genFeatureVector2 = Seq(rawCity2, rawReal2, rawTextMap).transmogrify()
     val checkedFeatures2 = new SanityChecker()
@@ -596,25 +549,20 @@ class BadFeatureZooTest extends FlatSpec with TestSparkContext with Logging {
       generatedRawData)
 
     // Construct a binned value of expected revenue into three bins: null, 0, or neither to perform a Cramer's V test
-    val erTransformer = new UnaryLambdaTransformer[Currency, PickList](operationName = "erBinned",
-      transformFn = c => c.value match {
-        case Some(v) if v != 0 => "nonZero".toPickList
-        case Some(_) => "zero".toPickList
-        case None => "null".toPickList
-      }
-    )
-    val erBinned = erTransformer.setInput(rawER).getOutput()
+    val erBinned = rawER.map[PickList](c => c.value match {
+      case Some(v) if v != 0.0 => "nonZero".toPickList
+      case Some(_) => "zero".toPickList
+      case None => "null".toPickList
+    }, operationName = "erBinned")
 
     // Construct a label that we know is highly biased from the pickList data to check if SanityChecker detects it
-    val labelTransformer = new UnaryLambdaTransformer[Binary, RealNN](operationName = "labelFunc",
-      transformFn = r => r.value match {
-        case Some(true) => RealNN(1.0)
-        case Some(false) => RealNN(0.0)
-        case None => RealNN(0.0)
-      }
-    )
-    val labelData = labelTransformer.setInput(rawBinary).getOutput().asInstanceOf[Feature[RealNN]]
-      .copy(isResponse = true)
+    val labelData = rawBinary.map[RealNN]({
+      case SomeValue(Some(true)) => 1.0.toRealNN
+      case _ => 0.0.toRealNN
+    }).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
+
+    println(erBinned.originStage.operationName)
+    println(labelData.originStage.operationName)
 
     val genFeatureVector = Seq(rawBinary, rawCurrency, rawER, erBinned).transmogrify()
     val checkedFeatures = new SanityChecker()
@@ -711,24 +659,19 @@ class BadFeatureZooTest extends FlatSpec with TestSparkContext with Logging {
       TestFeatureBuilder("currency", "multipicklist", "picklistMap", generatedData)
 
     val ruleLabel = 3 // Label to assign if the row satisfies the rule (other rows will be in [0, ruleLabel - 1])
-    val labelTransformer = new UnaryLambdaTransformer[MultiPickList, RealNN](operationName = "labelFunc",
-      // Lots of cases here for generating different types of relations for testing
-      transformFn = p => p.value match {
-        // case j if j == Set("0") => RealNN(ruleLabel)
-        // case j if j == Set("0", "1") => RealNN(ruleLabel)
-        case j if j.contains("3") => RealNN(ruleLabel)
-        // case j if !j.contains("3") => RealNN(ruleLabel)
-        // case j if j.contains("0") && j.contains("1") => RealNN(ruleLabel)
-        // case j if j.contains("0") && j.contains("1") && j.contains("2") => RealNN(ruleLabel)
-        // case j if j.contains("0") || j.contains("1") => RealNN(ruleLabel)
-        // case j if j.contains("1") || j.contains("2") || j.contains("3") => RealNN(ruleLabel)
-        // case _ => RealNN(ruleLabel)
-        // Need to do up to ruleLabel + 1 for completely random data
-        case _ => RandomIntegral.integrals(from = 0, to = ruleLabel).limit(1).head.toDouble.get.toRealNN
-      }
-    )
-    val labelData = labelTransformer.setInput(rawMultiPickList).getOutput().asInstanceOf[Feature[RealNN]]
-      .copy(isResponse = true)
+    val labelData = rawMultiPickList.map[RealNN](p => p.value match {
+      // case j if j == Set("0") => RealNN(ruleLabel)
+      // case j if j == Set("0", "1") => RealNN(ruleLabel)
+      case j if j.contains("3") => RealNN(ruleLabel)
+      // case j if !j.contains("3") => RealNN(ruleLabel)
+      // case j if j.contains("0") && j.contains("1") => RealNN(ruleLabel)
+      // case j if j.contains("0") && j.contains("1") && j.contains("2") => RealNN(ruleLabel)
+      // case j if j.contains("0") || j.contains("1") => RealNN(ruleLabel)
+      // case j if j.contains("1") || j.contains("2") || j.contains("3") => RealNN(ruleLabel)
+      // case _ => RealNN(ruleLabel)
+      // Need to do up to ruleLabel + 1 for completely random data
+      case _ => RandomIntegral.integrals(from = 0, to = ruleLabel).limit(1).head.toDouble.get.toRealNN
+    }).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
 
     val genFeatureVector = Seq(rawCurrency, rawMultiPickList, rawPicklistMap).transmogrify()
     val checkedFeatures = new SanityChecker()
@@ -758,14 +701,10 @@ class BadFeatureZooTest extends FlatSpec with TestSparkContext with Logging {
     val (rawDF, rawCurrency, rawPicklistMap) =
       TestFeatureBuilder("currency", "picklistMap", generatedData)
 
-    val labelTransformer2 = new UnaryLambdaTransformer[Currency, RealNN](operationName = "labelFunc",
-      transformFn = p => p.value match {
-        case None => RealNN(5.0)
-        case Some(v) => RealNN(v + 2.0)
-      }
-    )
-    val labelData = labelTransformer2.setInput(rawCurrency).getOutput().asInstanceOf[Feature[RealNN]]
-      .copy(isResponse = true)
+    val labelData = rawCurrency.map[RealNN](p => p.value match {
+      case None => RealNN(5.0)
+      case Some(v) => RealNN(v + 2.0)
+    }).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
 
     val genFeatureVector = Seq(rawCurrency, rawPicklistMap).transmogrify()
     val checkedFeatures = new SanityChecker()
@@ -803,15 +742,12 @@ class BadFeatureZooTest extends FlatSpec with TestSparkContext with Logging {
     val (rawDF, rawPickList, rawCurrency) = TestFeatureBuilder("picklist", "currency", generatedData)
 
     // Construct a label that we know is highly biased from the pickList data to check if SanityChecker detects it
-    val labelTransformer = new UnaryLambdaTransformer[PickList, RealNN](operationName = "labelFunc",
-      transformFn = p => p.value match {
-        case Some("A") | Some("B") => RealNN(1.0)
-        case Some("C") => RealNN(0.0)
-        case _ => RandomIntegral.integrals(0, 2).withProbabilityOfEmpty(0.0).limit(1).head.toDouble.get.toRealNN
-      }
-    )
-    val labelData = labelTransformer.setInput(rawPickList).getOutput().asInstanceOf[Feature[RealNN]]
-      .copy(isResponse = true)
+    val labelData = rawPickList.map[RealNN](p => p.value match {
+      case Some("A") | Some("B") => RealNN(1.0)
+      case Some("C") => RealNN(0.0)
+      case _ => RandomIntegral.integrals(0, 2).withProbabilityOfEmpty(0.0).limit(1).head.toDouble.get.toRealNN
+    }).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
+
     val genFeatureVector = Seq(rawPickList, rawCurrency).transmogrify()
 
     // Want to remove feature only due to sibling feature correlations, so turn off Cramer's V here
@@ -897,15 +833,11 @@ class BadFeatureZooTest extends FlatSpec with TestSparkContext with Logging {
       generatedRawData)
 
     // Construct a label that we know is highly biased from the pickList data to check if SanityChecker detects it
-    val labelTransformer = new UnaryLambdaTransformer[Binary, RealNN](operationName = "labelFunc",
-      transformFn = r => r.value match {
-        case Some(true) => RealNN(1.0)
-        case Some(false) => RealNN(0.0)
-        case None => RealNN(0.0)
-      }
-    )
-    val labelData =
-      labelTransformer.setInput(rawBinary).getOutput().asInstanceOf[Feature[RealNN]].copy(isResponse = true)
+    val labelData = rawBinary.map[RealNN](r => r.value match {
+      case Some(true) => RealNN(1.0)
+      case Some(false) => RealNN(0.0)
+      case None => RealNN(0.0)
+    }).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
 
     // Compute expected revenue bins
     val erBinned = expectedRevenueBinned(labelData, rawER)

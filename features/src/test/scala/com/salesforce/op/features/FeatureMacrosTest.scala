@@ -36,6 +36,8 @@ import org.junit.runner.RunWith
 import org.scalatest.FlatSpec
 import org.scalatest.junit.JUnitRunner
 
+import scala.reflect.runtime.universe.TypeTag
+
 
 @RunWith(classOf[JUnitRunner])
 class FeatureMacrosTest extends FlatSpec with TestCommon {
@@ -47,15 +49,26 @@ class FeatureMacrosTest extends FlatSpec with TestCommon {
     assertFeature(t)(in = 123.0, out = "123.0".toText, name = t.name, parents = Seq(feature))
   }
   it should "include filename, line and column in the operation name" in {
-    val t = FeatureMacros.map[Real, Text](feature, _.value.map(_.toString).toText, "map")
-    t.originStage.operationName shouldBe "map_FeatureMacrosTest_L50C42"
+    val t = FeatureMacros.map[Real, Real](feature, _.value.map(_ + 1.0).toReal, "map")
+    t.originStage.operationName shouldBe "map_FeatureMacrosTest_L52C42"
   }
   it should "produce a unique operation name & uid for each map" in {
     val t = FeatureMacros.map[Real, Text](feature, _.value.map(_.toString).toText, "map")
     val tt = FeatureMacros.map[Real, Text](feature, _.value.map(_.toString).toText, "map")
+    t.originStage.operationName shouldBe "map_FeatureMacrosTest_L56C42"
+    tt.originStage.operationName shouldBe "map_FeatureMacrosTest_L57C43"
+    t.originStage.uid should not be tt.originStage.uid
+    t.originStage.operationName should not be tt.originStage.operationName
+    t should not be tt
+  }
+  it should "produce a unique operation name & uid for each map with implicit class" in {
+    import TestImplicits._
+    val t = feature.map[Text](_.value.map(_.toString).toText, "map")
+    val tt = feature.map[Text](_.value.map(_.toString).toText, "map")
     t.originStage.operationName shouldBe "map_FeatureMacrosTest_L54C42"
     tt.originStage.operationName shouldBe "map_FeatureMacrosTest_L55C43"
     t.originStage.uid should not be tt.originStage.uid
+    t.originStage.operationName should not be tt.originStage.operationName
     t should not be tt
   }
   it should "provide a binary map function" in {
@@ -66,6 +79,19 @@ class FeatureMacrosTest extends FlatSpec with TestCommon {
   }
   it should "provide a quaternary map function" in {
     // TODO
+  }
+
+}
+
+object TestImplicits {
+
+  implicit class RichFeature[A <: FeatureType : TypeTag]
+  (val feature: FeatureLike[A])(implicit val ftt: TypeTag[A#Value]) {
+
+    final def map[B <: FeatureType : TypeTag](
+      f: A => B, operationName: String = "map"
+    )(implicit ttv: TypeTag[B#Value]): FeatureLike[B] = FeatureMacros.map[A, B](feature, f, operationName)
+
   }
 
 }

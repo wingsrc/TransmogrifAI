@@ -184,10 +184,9 @@ trait RichNumericFeature {
      * @return transformed feature
      */
     def /[N](v: N)(implicit n: Numeric[N]): FeatureLike[Real] = {
-      f.transformWith(
-        new UnaryLambdaTransformer[I, Real](
-          operationName = "divideS",
-          transformFn = r => r.toDouble.map(_ / n.toDouble(v)).filter(Number.isValid).toReal)
+      f.map[Real](
+        (r: I) => r.toDouble.map(_ / n.toDouble(v)).filter(Number.isValid).toReal,
+        operationName = "divideScalar"
       )
     }
 
@@ -200,10 +199,9 @@ trait RichNumericFeature {
      * @return transformed feature
      */
     def *[N](v: N)(implicit n: Numeric[N]): FeatureLike[Real] = {
-      f.transformWith(
-        new UnaryLambdaTransformer[I, Real](
-          operationName = "multiplyS",
-          transformFn = r => r.toDouble.map(_ * n.toDouble(v)).filter(Number.isValid).toReal)
+      f.map[Real](
+        (r: I) => r.toDouble.map(_ * n.toDouble(v)).filter(Number.isValid).toReal,
+        operationName = "multiplyScalar"
       )
     }
 
@@ -216,10 +214,9 @@ trait RichNumericFeature {
      * @return transformed feature
      */
     def +[N](v: N)(implicit n: Numeric[N]): FeatureLike[Real] = {
-      f.transformWith(
-        new UnaryLambdaTransformer[I, Real](
-          operationName = "plusS",
-          transformFn = r => r.toDouble.map(_ + n.toDouble(v)).toReal)
+      f.map[Real](
+        (r: I) => r.toDouble.map(_ + n.toDouble(v)).toReal,
+        operationName = "plusScalar"
       )
     }
 
@@ -232,10 +229,9 @@ trait RichNumericFeature {
      * @return transformed feature
      */
     def -[N](v: N)(implicit n: Numeric[N]): FeatureLike[Real] = {
-      f.transformWith(
-        new UnaryLambdaTransformer[I, Real](
-          operationName = "minusS",
-          transformFn = r => r.toDouble.map(_ - n.toDouble(v)).toReal)
+      f.map[Real](
+        (r: I) => r.toDouble.map(_ - n.toDouble(v)).toReal,
+        operationName = "minusScalar"
       )
     }
 

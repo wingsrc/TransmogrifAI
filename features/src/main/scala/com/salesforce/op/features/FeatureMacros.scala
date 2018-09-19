@@ -72,11 +72,11 @@ private class FeatureMacrosImpl(val c: blackbox.Context) {
     val fileName = position.source.file.name.split('.').head
     c.Expr(
       q"""
-          new com.salesforce.op.stages.base.unary.UnaryLambdaTransformer2(
-            position = com.salesforce.op.features.LambdaRegistry($fileName, $line, $column, $f),
-            operationName = $operationName + "_" + $fileName + "_L" + $line + "C" + $column
-          ).setInput($in).getOutput()
-      """
+         com.salesforce.op.stages.LambdaTransformer.unary(
+            com.salesforce.op.stages.LambdaPosition($fileName, $line, $column),
+            $f, $operationName
+         ).setInput($in).getOutput()
+       """
     )
   }
   // scalastyle:on

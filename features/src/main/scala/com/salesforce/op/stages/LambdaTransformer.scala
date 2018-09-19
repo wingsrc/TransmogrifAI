@@ -28,35 +28,46 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.salesforce.op.stages.base.unary
+package com.salesforce.op.stages
 
-import com.salesforce.op.features.types._
-import com.salesforce.op.stages.{LambdaPosition, LambdaTransformer}
-import com.salesforce.op.test.{OpTransformerSpec, TestFeatureBuilder}
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
+import com.salesforce.op.UID
+import com.salesforce.op.features.LambdaRegistry
+import com.salesforce.op.features.types.FeatureType
+import com.salesforce.op.stages.base.unary.{UnaryLambdaTransformer2, UnaryTransformer}
 
+import scala.reflect.runtime.universe.TypeTag
 
-@RunWith(classOf[JUnitRunner])
-class UnaryTransformerTest extends OpTransformerSpec[Real, UnaryTransformer[Real, Real]] {
-
-  /**
-   * Input Dataset to transform
-   */
-  val (inputData, f1) = TestFeatureBuilder(Seq(Some(1), Some(2), Some(3), None).map(_.toReal))
+/**
+ * Lambda transformers factory - one place to create all lambda transformers:
+ * unary, binary, ternary, quaternary, sequence etc.
+ */
+case object LambdaTransformer {
 
   /**
-   * [[OpTransformer]] instance to be tested
+   * Transformer that takes a single input feature and produces
+   * a single new output feature using the specified function.
+   * Performs row wise transformation specified in transformFn.
    */
-  val transformer = LambdaTransformer.unary[Real, Real](
-    pos = LambdaPosition(this.getClass.getSimpleName, 0, 0),
-    fn = r => r.v.map(_ * 2.0).toReal,
-    operationName = "unary"
-  ).setInput(f1)
+  def unary[A <: FeatureType : TypeTag, B <: FeatureType : TypeTag](
+    pos: LambdaPosition,
+    fn: A => B,
+    operationName: String,
+    uid: String = UID[UnaryLambdaTransformer2[A, B]]
+  )(implicit ttov: TypeTag[B#Value]): UnaryTransformer[A, B] = {
+    LambdaRegistry.register[A, B](pos, fn)
+    new UnaryLambdaTransformer2[A, B](
+      position = pos,
+      operationName = operationNameWithPosition(operationName, pos),
+      uid = uid
+    )
+  }
 
-  /**
-   * Expected result of the transformer applied on the Input Dataset
-   */
-  val expectedResult = Seq(Real(2), Real(4), Real(6), Real.empty)
-
+  private def operationNameWithPosition(operationName: String, pos: LambdaPosition): String = {
+    s"${operationName}_${pos.fileName}_L${pos.line}C${pos.column}"
+  }
 }
+
+/**
+ * Unique source code position for lambda function
+ */
+case class LambdaPosition(fileName: String, line: Int, column: Int)

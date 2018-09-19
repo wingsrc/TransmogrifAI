@@ -34,7 +34,7 @@ import java.util
 
 import com.salesforce.op.aggregators._
 import com.salesforce.op.features.types._
-import com.salesforce.op.stages.{FeatureGeneratorStage, OpPipelineStage, OpTransformer}
+import com.salesforce.op.stages._
 import com.salesforce.op.test.{Passenger, TestSparkContext}
 import com.twitter.algebird.MonoidAggregator
 import org.apache.spark.sql.{DataFrame, Row}
@@ -183,25 +183,27 @@ object assertFeature extends Matchers {
    * @param parents         expected parents
    * @param aggregator      expected aggregator
    * @param aggregateWindow expected aggregate window
-   * @param tti             expected input typetag
-   * @param wtt             expected output typetag
+   * @param tti             expected input type tag
+   * @param tto             expected output type tag
+   * @param ttov            expected output value type tag
    * @tparam I input type
    * @tparam O output feature type
    */
+  // scalastyle:off parameter.number
   def apply[I, O <: FeatureType : FeatureTypeSparkConverter](f: FeatureLike[O])(
     in: I, out: O, name: String, isResponse: Boolean = false,
     parents: Seq[OPFeature] = Nil,
     aggregator: WeakTypeTag[O] => MonoidAggregator[Event[O], _, O] = (wtt: WeakTypeTag[O]) =>
       MonoidAggregatorDefaults.aggregatorOf[O](wtt),
     aggregateWindow: Option[Duration] = None
-  )(implicit tti: WeakTypeTag[I], wtt: WeakTypeTag[O]): Unit = {
+  )(implicit tti: WeakTypeTag[I], tto: WeakTypeTag[O], ttov: WeakTypeTag[O#Value]): Unit = {
     f.name shouldBe name
     f.isResponse shouldBe isResponse
     f.parents shouldBe parents
-    f.uid should startWith (wtt.tpe.dealias.toString.split("\\.").last)
-    f.wtt.tpe =:= wtt.tpe shouldBe true
+    f.uid should startWith(tto.tpe.dealias.toString.split("\\.").last)
+    f.wtt.tpe =:= tto.tpe shouldBe true
     f.isRaw shouldBe parents.isEmpty
-    f.typeName shouldBe wtt.tpe.typeSymbol.fullName
+    f.typeName shouldBe tto.tpe.typeSymbol.fullName
     f.originStage shouldBe a[OpPipelineStage[_]]
     val s = f.originStage.asInstanceOf[OpPipelineStage[_]]
     s.getOutputFeatureName shouldBe name
@@ -211,7 +213,7 @@ object assertFeature extends Matchers {
       f.originStage shouldBe a[FeatureGeneratorStage[_, _ <: FeatureType]]
       val fg = f.originStage.asInstanceOf[FeatureGeneratorStage[I, O]]
       fg.tti shouldBe tti
-      val aggr = aggregator(wtt)
+      val aggr = aggregator(tto)
       fg.aggregator shouldBe aggr
       fg.operationName shouldBe s"$aggr($name)"
       fg.extractFn(in) shouldBe out
@@ -220,6 +222,14 @@ object assertFeature extends Matchers {
       fg.aggregateWindow shouldBe aggregateWindow
       fg.uid should startWith(classOf[FeatureGeneratorStage[_, _]].getSimpleName)
     } else {
+      withClue("Output stage type tags are not as expected: ") {
+        f.originStage match {
+          case o: HasOutput[_] =>
+            o.tto.tpe =:= tto.tpe shouldBe true
+            o.ttov.tpe =:= ttov.tpe shouldBe true
+          case _ =>
+        }
+      }
       f.originStage match {
         case t: OpTransformer =>
           val conv = implicitly[FeatureTypeSparkConverter[O]]

@@ -32,9 +32,8 @@ package com.salesforce.op.stages.impl.feature
 
 import com.salesforce.op._
 import com.salesforce.op.OpWorkflow
-import com.salesforce.op.features.Feature
+import com.salesforce.op.features.{Feature, FeatureLike}
 import com.salesforce.op.features.types._
-import com.salesforce.op.stages.base.unary.UnaryLambdaTransformer
 import com.salesforce.op.test.{FeatureTestBase, TestFeatureBuilder}
 import com.salesforce.op.utils.spark.RichDataset._
 import com.salesforce.op.testkit.{RandomIntegral, RandomReal}
@@ -50,14 +49,8 @@ class NumericVectorizerTest extends FlatSpec with FeatureTestBase with Attribute
   val ageData: Seq[Real] = RandomReal.uniform[Real](maxValue = 80.0).limit(100)
   val heightData: Seq[Real] = RandomReal.normal[Real](mean = 65.0, sigma = 8).limit(100)
   val countData: Seq[Integral] = RandomIntegral.integrals(0, 10).limit(100)
-  val labelTransformer = new UnaryLambdaTransformer[Real, RealNN](operationName = "labelFunc",
-    transformFn = {
-      case SomeValue(Some(x)) if x > 30.0 => 1.toRealNN
-      case _ => 0.0.toRealNN
-    }
-  )
 
-  Spec[RichRealFeature[_]] should "vectorize a small sample of real values" in {
+  "RichRealFeature" should "vectorize a small sample of real values" in {
     val inputData = Seq(-4, -3, -2, -1, 1, 2, 3, 4).map(_.toReal)
     val labelData = Seq(0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0).map(_.toRealNN)
     val generatedData = inputData.zip(labelData)
@@ -82,7 +75,10 @@ class NumericVectorizerTest extends FlatSpec with FeatureTestBase with Attribute
   }
   it should "vectorize single real feature with a label" in {
     val (ds, age) = TestFeatureBuilder("age", ageData)
-    val labelData = age.transformWith(labelTransformer).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
+    val labelData = age.map[RealNN]({
+      case SomeValue(Some(x)) if x > 30.0 => 1.toRealNN
+      case _ => 0.0.toRealNN
+    }).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
     val autoBucketFeature = Seq(age).transmogrify(label = Some(labelData))
     val manualBucketFeature = Seq(
       age.vectorize(fillValue = 0, fillWithMean = true, trackNulls = true),
@@ -99,7 +95,10 @@ class NumericVectorizerTest extends FlatSpec with FeatureTestBase with Attribute
   it should "vectorize multiple real features with a label" in {
     val generatedData: Seq[(Real, Real)] = ageData.zip(heightData)
     val (ds, age, height) = TestFeatureBuilder("age", "height", generatedData)
-    val labelData = age.transformWith(labelTransformer).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
+    val labelData = age.map[RealNN]({
+      case SomeValue(Some(x)) if x > 30.0 => 1.toRealNN
+      case _ => 0.0.toRealNN
+    }).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
     val autoBucketFeature = Seq(age, height).transmogrify(label = Some(labelData))
     val manualBucketFeature = Seq(
       age, age.autoBucketize(labelData, trackNulls = false),
@@ -113,15 +112,12 @@ class NumericVectorizerTest extends FlatSpec with FeatureTestBase with Attribute
       autoAge.v.toArray should contain theSameElementsAs manualAge.v.toArray
     }
   }
-  Spec[RichIntegralFeature[_]] should "vectorize single integral feature with a label" in {
+  "RichIntegralFeature" should "vectorize single integral feature with a label" in {
     val (ds, count) = TestFeatureBuilder("count", countData)
-    val labelTransformer = new UnaryLambdaTransformer[Integral, RealNN](operationName = "labelFunc",
-      transformFn = {
-        case SomeValue(Some(x)) if x > 5 => 1.0.toRealNN
-        case _ => 0.0.toRealNN
-      }
-    )
-    val labelData = labelTransformer.setInput(count).getOutput().asInstanceOf[Feature[RealNN]].copy(isResponse = true)
+    val labelData = count.map[RealNN]({
+      case SomeValue(Some(x)) if x > 5 => 1.0.toRealNN
+      case _ => 0.0.toRealNN
+    }).asInstanceOf[Feature[RealNN]].copy(isResponse = true)
     val autoBucketFeature = Seq(count).transmogrify(label = Some(labelData))
     val manualBucketFeature = Seq(count, count.autoBucketize(labelData, trackNulls = false)).transmogrify()
     val vectorized = new OpWorkflow().setResultFeatures(autoBucketFeature, manualBucketFeature).transform(ds)

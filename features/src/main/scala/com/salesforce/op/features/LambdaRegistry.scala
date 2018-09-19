@@ -30,40 +30,42 @@
 
 package com.salesforce.op.features
 
+import java.util.concurrent.ConcurrentHashMap
+
+import com.salesforce.op.stages.LambdaPosition
+
 /**
- * A singleton registry for lambda expressions used in feature `.map` operations
+ * A singleton registry for lambda expressions used in [[LambdaTransformer]] factory
  */
 private[op] object LambdaRegistry {
 
   /**
-   * Lambda unique source code position
+   * Lambda registry: [[LambdaPosition]] -> Function
    */
-  case class Position(fileName: String, line: Int, column: Int)
-
-  private val registry = new java.util.concurrent.ConcurrentHashMap[String, AnyRef]()
+  private val registry = new ConcurrentHashMap[String, AnyRef]()
 
   /**
-   * Register lambda function at specified position
+   * Register lambda expression at position
    */
-  def apply(fileName: String, line: Int, column: Int, fn: AnyRef): Position = {
-    val position = Position(fileName, line, column)
-    register(position, fn)
-    position
-  }
-  def register(pos: Position, fn: AnyRef): Unit = registry.put(pos.toString, fn)
+  def register[A, B](pos: LambdaPosition, fn: A => B): Unit = doRegister(pos, fn)
+  def register[A, B, C](pos: LambdaPosition, fn: (A, B) => C): Unit = doRegister(pos, fn)
+  def register[A, B, C, D](pos: LambdaPosition, fn: (A, B, C) => D): Unit = doRegister(pos, fn)
+  def register[A, B, C, D, E](pos: LambdaPosition, fn: (A, B, C, D) => E): Unit = doRegister(pos, fn)
+  private def doRegister(pos: LambdaPosition, fn: AnyRef): Unit = registry.put(pos.toString, fn)
 
   /**
-   * Retrieve lambda function by position
+   * Retrieve lambda function at position
+   * @throws RuntimeException if lambda function is registered as specified position
    */
-  def function1[A, B](pos: Position): A => B = apply[A => B](pos)
-  def function2[A, B, C](pos: Position): (A, B) => C = apply[(A, B) => C](pos)
-  def function3[A, B, C, D](pos: Position): (A, B, C) => D = apply[(A, B, C) => D](pos)
-  def function4[A, B, C, D, E](pos: Position): (A, B, C, D) => E = apply[(A, B, C, D) => E](pos)
+  def function1[A, B](pos: LambdaPosition): A => B = apply[A => B](pos)
+  def function2[A, B, C](pos: LambdaPosition): (A, B) => C = apply[(A, B) => C](pos)
+  def function3[A, B, C, D](pos: LambdaPosition): (A, B, C) => D = apply[(A, B, C) => D](pos)
+  def function4[A, B, C, D, E](pos: LambdaPosition): (A, B, C, D) => E = apply[(A, B, C, D) => E](pos)
 
-  private def apply[T <: AnyRef](pos: Position): T =
+  private def apply[T <: AnyRef](pos: LambdaPosition): T =
     Option(registry.get(pos.toString)).map(_.asInstanceOf[T]).getOrElse(
-      throw new RuntimeException(s"Lambda registry have no function registered " +
-        s"at ${pos.fileName} line ${pos.line}, column ${pos.column}"
+      throw new RuntimeException("Lambda registry have no function registered on position: " +
+        s"file ${pos.fileName}, line ${pos.line}, column ${pos.column}"
       )
     )
 }

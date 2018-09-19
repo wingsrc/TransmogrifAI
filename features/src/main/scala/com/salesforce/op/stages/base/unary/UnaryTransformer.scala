@@ -32,9 +32,8 @@ package com.salesforce.op.stages.base.unary
 
 import com.salesforce.op.UID
 import com.salesforce.op.features.{FeatureSparkTypes, LambdaRegistry}
-import com.salesforce.op.features.LambdaRegistry.Position
 import com.salesforce.op.features.types.FeatureType
-import com.salesforce.op.stages.{OpPipelineStage1, OpTransformer}
+import com.salesforce.op.stages.{LambdaPosition, OpPipelineStage1, OpTransformer}
 import org.apache.spark.ml.Transformer
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, Dataset}
@@ -144,7 +143,7 @@ final class UnaryLambdaTransformer[I <: FeatureType, O <: FeatureType]
  * Performs row wise transformation specified in transformFn.
  *
  * @param operationName unique name of the operation this stage performs
- * @param transformFn   function used to convert input to output
+ * @param position      unique lambda function position for function lookup in [[LambdaRegistry]]
  * @param uid           uid for instance
  * @param tti           type tag for input
  * @param tto           type tag for output
@@ -154,7 +153,7 @@ final class UnaryLambdaTransformer[I <: FeatureType, O <: FeatureType]
  */
 private[op] final class UnaryLambdaTransformer2[I <: FeatureType, O <: FeatureType]
 (
-  val position: Position,
+  val position: LambdaPosition,
   operationName: String,
   uid: String = UID[UnaryLambdaTransformer[I, O]]
 )(

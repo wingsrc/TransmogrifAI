@@ -1027,16 +1027,13 @@ trait RichMapFeature {
       others: Array[FeatureLike[URLMap]] = Array.empty
     ): FeatureLike[OPVector] = {
       val domains: Array[FeatureLike[PickListMap]] = (f +: others).map { e =>
-        val transformer =
-          new UnaryLambdaTransformer[URLMap, PickListMap](
-            operationName = "urlMapToPickListMap",
-            transformFn = _.value
-              .mapValues(v => if (v.toURL.isValid) v.toURL.domain else None)
-              .collect { case (k, Some(v)) => k -> v }.toPickListMap
-          )
-        transformer.setInput(e).getOutput()
+        e.map[PickListMap](
+          _.value
+            .mapValues(v => if (v.toURL.isValid) v.toURL.domain else None)
+            .collect { case (k, Some(v)) => k -> v }.toPickListMap,
+          operationName = "urlMapToPickListMap"
+        )
       }
-
       domains.head.vectorize(
         topK = topK, minSupport = minSupport, cleanText = cleanText, cleanKeys = cleanKeys,
         whiteListKeys = whiteListKeys, blackListKeys = blackListKeys,
