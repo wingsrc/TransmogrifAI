@@ -93,13 +93,14 @@ class OpVectorMetadata private
       .putMetadataArray(OpVectorMetadata.ColumnsKey, colMeta.toArray)
       .putMetadata(OpVectorMetadata.HistoryKey, FeatureHistory.toMetadata(history))
       .build()
-    val attributes = columns.map {
-      case c if (c.indicatorValue.isDefined || binaryTypes.exists(c.parentFeatureType.contains)) &&
-        !(multiPicklistTypes.exists(c.parentFeatureType.contains) && c.isOtherIndicator) =>
-        BinaryAttribute.defaultAttr.withName(c.makeColName()).withIndex(c.index)
-      case c => NumericAttribute.defaultAttr.withName(c.makeColName()).withIndex(c.index)
-    }
-    new AttributeGroup(name, attributes).toMetadata(meta)
+//    val attributes = columns.map {
+//      case c if (c.indicatorValue.isDefined || binaryTypes.exists(c.parentFeatureType.contains)) &&
+//        !(multiPicklistTypes.exists(c.parentFeatureType.contains) && c.isOtherIndicator) =>
+//        BinaryAttribute.defaultAttr.withName(c.makeColName()).withIndex(c.index)
+//      case c => NumericAttribute.defaultAttr.withName(c.makeColName()).withIndex(c.index)
+//    }
+//    new AttributeGroup(name, attributes).toMetadata(meta)
+    meta
   }
 
   /**
