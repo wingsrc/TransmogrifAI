@@ -50,7 +50,7 @@ trait RichDateFeature {
      * Convert to DateList feature
      * @return
      */
-    def toDateList(): FeatureLike[DateList] = {
+    def toDateList(implicit pos: sourcecode.Position): FeatureLike[DateList] = {
       f.map[DateList](_.value.toSeq.toDateList, operationName = "dateToList")
     }
 
@@ -101,8 +101,8 @@ trait RichDateFeature {
       others: Array[FeatureLike[Date]] = Array.empty
     ): FeatureLike[OPVector] = {
       val timePeriods = circularDateReps.map(tp => f.toUnitCircle(tp, others))
-      val time = f.toDateList().vectorize(dateListPivot = dateListPivot, referenceDate = referenceDate,
-        trackNulls = trackNulls, others = others.map(_.toDateList()))
+      val time = f.toDateList.vectorize(dateListPivot = dateListPivot, referenceDate = referenceDate,
+        trackNulls = trackNulls, others = others.map(_.toDateList))
       if (timePeriods.isEmpty) time else (timePeriods :+ time).combine()
     }
 
@@ -119,7 +119,7 @@ trait RichDateFeature {
      * Convert to DateTimeList feature
      * @return
      */
-    def toDateTimeList(): FeatureLike[DateTimeList] = {
+    def toDateTimeList(implicit pos: sourcecode.Position): FeatureLike[DateTimeList] = {
       f.map[DateTimeList](_.value.toSeq.toDateTimeList, operationName = "dateTimeToList")
     }
 
@@ -169,8 +169,8 @@ trait RichDateFeature {
       others: Array[FeatureLike[DateTime]] = Array.empty
     ): FeatureLike[OPVector] = {
       val timePeriods = circularDateReps.map(tp => f.toUnitCircle(tp, others))
-      val time = f.toDateTimeList().vectorize(dateListPivot = dateListPivot, referenceDate = referenceDate,
-        trackNulls = trackNulls, others = others.map(_.toDateTimeList()))
+      val time = f.toDateTimeList.vectorize(dateListPivot = dateListPivot, referenceDate = referenceDate,
+        trackNulls = trackNulls, others = others.map(_.toDateTimeList))
       if (timePeriods.isEmpty) time else (timePeriods :+ time).combine()
     }
 

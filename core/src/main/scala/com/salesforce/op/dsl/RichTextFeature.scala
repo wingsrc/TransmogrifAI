@@ -55,7 +55,8 @@ trait RichTextFeature {
      *
      * @return A new MultiPickList feature
      */
-    def toMultiPickList: FeatureLike[MultiPickList] = f.map[MultiPickList](_.value.toSet[String].toMultiPickList)
+    def toMultiPickList(implicit pos: sourcecode.Position): FeatureLike[MultiPickList] =
+      f.map[MultiPickList](_.value.toSet[String].toMultiPickList)
 
 
     /**
@@ -536,14 +537,16 @@ trait RichTextFeature {
      *
      * @return email prefix
      */
-    def toEmailPrefix: FeatureLike[Text] = f.map[Text](_.prefix.toText, "prefix")
+    def toEmailPrefix(implicit pos: sourcecode.Position): FeatureLike[Text] =
+      f.map[Text](_.prefix.toText, "prefix")
 
     /**
      * Extract email domains
      *
      * @return email domain
      */
-    def toEmailDomain: FeatureLike[Text] = f.map[Text](_.domain.toText, "domain")
+    def toEmailDomain(implicit pos: sourcecode.Position): FeatureLike[Text] =
+      f.map[Text](_.domain.toText, "domain")
 
     /**
      * Converts a sequence of [[Email]] features into a vector, extracting the domains of the e-mails
@@ -578,12 +581,14 @@ trait RichTextFeature {
     /**
      * Extract url domain, i.e. salesforce.com, data.com etc.
      */
-    def toDomain: FeatureLike[Text] = f.map[Text](_.domain.toText, "urlDomain")
+    def toDomain(implicit pos: sourcecode.Position): FeatureLike[Text] =
+      f.map[Text](_.domain.toText, "urlDomain")
 
     /**
      * Extracts url protocol, i.e. http, https, ftp etc.
      */
-    def toProtocol: FeatureLike[Text] = f.map[Text](_.protocol.toText, "urlProtocol")
+    def toProtocol(implicit pos: sourcecode.Position): FeatureLike[Text] =
+      f.map[Text](_.protocol.toText, "urlProtocol")
 
     /**
      * Verifies if the url is of correct form of "Uniform Resource Identifiers (URI): Generic Syntax"

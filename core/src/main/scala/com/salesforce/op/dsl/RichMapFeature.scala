@@ -1024,7 +1024,7 @@ trait RichMapFeature {
       blackListKeys: Array[String] = Array.empty,
       trackNulls: Boolean = TransmogrifierDefaults.TrackNulls,
       others: Array[FeatureLike[URLMap]] = Array.empty
-    ): FeatureLike[OPVector] = {
+    )(implicit pos: sourcecode.Position): FeatureLike[OPVector] = {
       val domains: Array[FeatureLike[PickListMap]] = (f +: others).map { e =>
         e.map[PickListMap](
           _.value
@@ -1045,13 +1045,14 @@ trait RichMapFeature {
      *
      * @param f FeatureLike of URLMap
      */
-    implicit class RichPredicitionFeature(val f: FeatureLike[Prediction]) {
+    implicit class RichPredictionFeature(val f: FeatureLike[Prediction]) {
 
       /**
        * Takes single output feature from model of type Prediction and flattens it into 3 features
        * @return prediction, rawPrediction, probability
        */
-      def tupled(): (FeatureLike[RealNN], FeatureLike[OPVector], FeatureLike[OPVector]) = {
+      def tupled(implicit pos: sourcecode.Position):
+      (FeatureLike[RealNN], FeatureLike[OPVector], FeatureLike[OPVector]) = {
         (f.map[RealNN](_.prediction.toRealNN),
           f.map[OPVector]{ p => Vectors.dense(p.rawPrediction).toOPVector },
           f.map[OPVector]{ p => Vectors.dense(p.probability).toOPVector }

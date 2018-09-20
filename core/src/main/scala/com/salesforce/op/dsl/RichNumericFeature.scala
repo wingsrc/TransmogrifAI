@@ -182,7 +182,7 @@ trait RichNumericFeature {
      * @tparam N value type
      * @return transformed feature
      */
-    def /[N](v: N)(implicit n: Numeric[N]): FeatureLike[Real] = {
+    def /[N](v: N)(implicit n: Numeric[N], pos: sourcecode.Position): FeatureLike[Real] = {
       f.map[Real](
         (r: I) => r.toDouble.map(_ / n.toDouble(v)).filter(Number.isValid).toReal,
         operationName = "divideScalar"
@@ -197,7 +197,7 @@ trait RichNumericFeature {
      * @tparam N value type
      * @return transformed feature
      */
-    def *[N](v: N)(implicit n: Numeric[N]): FeatureLike[Real] = {
+    def *[N](v: N)(implicit n: Numeric[N], pos: sourcecode.Position): FeatureLike[Real] = {
       f.map[Real](
         (r: I) => r.toDouble.map(_ * n.toDouble(v)).filter(Number.isValid).toReal,
         operationName = "multiplyScalar"
@@ -212,7 +212,7 @@ trait RichNumericFeature {
      * @tparam N value type
      * @return transformed feature
      */
-    def +[N](v: N)(implicit n: Numeric[N]): FeatureLike[Real] = {
+    def +[N](v: N)(implicit n: Numeric[N], pos: sourcecode.Position): FeatureLike[Real] = {
       f.map[Real](
         (r: I) => r.toDouble.map(_ + n.toDouble(v)).toReal,
         operationName = "plusScalar"
@@ -227,7 +227,7 @@ trait RichNumericFeature {
      * @tparam N value type
      * @return transformed feature
      */
-    def -[N](v: N)(implicit n: Numeric[N]): FeatureLike[Real] = {
+    def -[N](v: N)(implicit n: Numeric[N], pos: sourcecode.Position): FeatureLike[Real] = {
       f.map[Real](
         (r: I) => r.toDouble.map(_ - n.toDouble(v)).toReal,
         operationName = "minusScalar"
