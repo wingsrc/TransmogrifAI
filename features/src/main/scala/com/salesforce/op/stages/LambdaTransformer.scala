@@ -62,7 +62,7 @@ case object LambdaTransformer {
     )
   }
 
-  //TODO: binary, ternary, quaternary, sequence etc.
+  // TODO: add factories for binary, ternary, quaternary, sequence etc.
 
   private def operationNameWithPosition(operationName: String, pos: LambdaPosition): String = {
     s"${operationName}_${pos.fileName}_L${pos.line}C${pos.column}"
