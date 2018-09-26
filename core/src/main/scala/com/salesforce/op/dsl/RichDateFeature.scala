@@ -32,7 +32,6 @@ package com.salesforce.op.dsl
 
 import com.salesforce.op.features.FeatureLike
 import com.salesforce.op.features.types._
-import com.salesforce.op.stages.base.unary.UnaryLambdaTransformer
 import com.salesforce.op.stages.impl.feature.{DateListPivot, DateToUnitCircleTransformer, TimePeriod, TransmogrifierDefaults}
 import org.joda.time.{DateTime => JDateTime}
 
@@ -51,10 +50,8 @@ trait RichDateFeature {
      * Convert to DateList feature
      * @return
      */
-    def toDateList(): FeatureLike[DateList] = {
-      f.transformWith(
-        new UnaryLambdaTransformer[Date, DateList](operationName = "dateToList", _.value.toSeq.toDateList)
-      )
+    def toDateList(implicit pos: sourcecode.Position): FeatureLike[DateList] = {
+      f.map[DateList](_.value.toSeq.toDateList, operationName = "dateToList")
     }
 
     /**
@@ -103,8 +100,8 @@ trait RichDateFeature {
       others: Array[FeatureLike[Date]] = Array.empty
     ): FeatureLike[OPVector] = {
       val timePeriods = circularDateReps.map(tp => f.toUnitCircle(tp, others))
-      val time = f.toDateList().vectorize(dateListPivot = dateListPivot, referenceDate = referenceDate,
-        trackNulls = trackNulls, others = others.map(_.toDateList()))
+      val time = f.toDateList.vectorize(dateListPivot = dateListPivot, referenceDate = referenceDate,
+        trackNulls = trackNulls, others = others.map(_.toDateList))
       if (timePeriods.isEmpty) time else (timePeriods :+ time).combine()
     }
 
@@ -121,13 +118,8 @@ trait RichDateFeature {
      * Convert to DateTimeList feature
      * @return
      */
-    def toDateTimeList(): FeatureLike[DateTimeList] = {
-      f.transformWith(
-        new UnaryLambdaTransformer[DateTime, DateTimeList](
-          operationName = "dateTimeToList",
-          _.value.toSeq.toDateTimeList
-        )
-      )
+    def toDateTimeList(implicit pos: sourcecode.Position): FeatureLike[DateTimeList] = {
+      f.map[DateTimeList](_.value.toSeq.toDateTimeList, operationName = "dateTimeToList")
     }
 
     /**
@@ -175,8 +167,8 @@ trait RichDateFeature {
       others: Array[FeatureLike[DateTime]] = Array.empty
     ): FeatureLike[OPVector] = {
       val timePeriods = circularDateReps.map(tp => f.toUnitCircle(tp, others))
-      val time = f.toDateTimeList().vectorize(dateListPivot = dateListPivot, referenceDate = referenceDate,
-        trackNulls = trackNulls, others = others.map(_.toDateTimeList()))
+      val time = f.toDateTimeList.vectorize(dateListPivot = dateListPivot, referenceDate = referenceDate,
+        trackNulls = trackNulls, others = others.map(_.toDateTimeList))
       if (timePeriods.isEmpty) time else (timePeriods :+ time).combine()
     }
 

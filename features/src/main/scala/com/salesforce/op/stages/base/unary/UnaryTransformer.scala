@@ -31,9 +31,9 @@
 package com.salesforce.op.stages.base.unary
 
 import com.salesforce.op.UID
-import com.salesforce.op.features.FeatureSparkTypes
+import com.salesforce.op.features.{FeatureSparkTypes, LambdaRegistry}
 import com.salesforce.op.features.types.FeatureType
-import com.salesforce.op.stages.{OpPipelineStage1, OpTransformer}
+import com.salesforce.op.stages.{LambdaPosition, OpPipelineStage1, OpTransformer}
 import org.apache.spark.ml.Transformer
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, Dataset}
@@ -111,13 +111,12 @@ abstract class UnaryTransformer[I <: FeatureType, O <: FeatureType]
   val ttov: TypeTag[O#Value]
 ) extends OpTransformer1[I, O]
 
-
 /**
  * Transformer that takes a single input feature and produces a single new output feature using the specified function.
  * Performs row wise transformation specified in transformFn.
  *
  * @param operationName unique name of the operation this stage performs
- * @param transformFn   function used to convert input to output
+ * @param position      unique lambda function source code position for function lookup in [[LambdaRegistry]]
  * @param uid           uid for instance
  * @param tti           type tag for input
  * @param tto           type tag for output
@@ -125,13 +124,17 @@ abstract class UnaryTransformer[I <: FeatureType, O <: FeatureType]
  * @tparam I input feature type
  * @tparam O output feature type
  */
-final class UnaryLambdaTransformer[I <: FeatureType, O <: FeatureType]
+private[op] final class UnaryLambdaTransformer[I <: FeatureType, O <: FeatureType]
 (
+  val position: LambdaPosition,
   operationName: String,
-  val transformFn: I => O,
   uid: String = UID[UnaryLambdaTransformer[I, O]]
 )(
   implicit tti: TypeTag[I],
   tto: TypeTag[O],
   ttov: TypeTag[O#Value]
-) extends UnaryTransformer[I, O](operationName = operationName, uid = uid)
+) extends UnaryTransformer[I, O](operationName = operationName, uid = uid) {
+
+  val transformFn: I => O = LambdaRegistry.function1[I, O](position)
+
+}

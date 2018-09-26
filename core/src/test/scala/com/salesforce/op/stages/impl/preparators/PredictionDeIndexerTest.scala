@@ -31,11 +31,11 @@
 package com.salesforce.op.stages.impl.preparators
 
 
-import com.salesforce.op.utils.spark.RichDataset._
 import com.salesforce.op.features.types._
-import com.salesforce.op.stages.base.unary.UnaryLambdaTransformer
+import com.salesforce.op.stages.base.unary.UnaryTransformer
 import com.salesforce.op.stages.impl.feature.OpStringIndexerNoFilter
 import com.salesforce.op.test.{TestFeatureBuilder, TestSparkContext}
+import com.salesforce.op.utils.spark.RichDataset._
 import org.junit.runner.RunWith
 import org.scalatest.FlatSpec
 import org.scalatest.junit.JUnitRunner
@@ -49,12 +49,8 @@ class PredictionDeIndexerTest extends FlatSpec with TestSparkContext {
   val response = txtF.indexed()
   val indexedData = response.originStage.asInstanceOf[OpStringIndexerNoFilter[_]].fit(ds).transform(ds)
 
-  val permutation = new UnaryLambdaTransformer[RealNN, RealNN](
-    operationName = "modulo",
-    transformFn = v => ((v.value.get + 1).toInt % 3).toRealNN
-  ).setInput(response)
-  val pred = permutation.getOutput()
-  val permutedData = permutation.transform(indexedData)
+  val pred = response.map[RealNN](v => ((v.value.get + 1).toInt % 3).toRealNN, "modulo")
+  val permutedData = pred.originStage.asInstanceOf[UnaryTransformer[_, _]].transform(indexedData)
 
   val expected = Array("b", "c", "a").map(_.toText)
 
@@ -65,7 +61,6 @@ class PredictionDeIndexerTest extends FlatSpec with TestSparkContext {
     val results = predDeIndexer.fit(permutedData).transform(permutedData).collect(deIndexed)
     results shouldBe expected
   }
-
 
   it should "throw a nice error when there is no metadata" in {
     val predDeIndexer = new PredictionDeIndexer().setInput(numF, pred)

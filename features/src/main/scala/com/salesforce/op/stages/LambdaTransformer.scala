@@ -30,50 +30,48 @@
 
 package com.salesforce.op.stages
 
-import com.salesforce.op._
-import com.salesforce.op.features.types._
-import com.salesforce.op.stages.base.unary.{UnaryEstimator, UnaryModel}
-import org.apache.spark.sql.Dataset
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
+import com.salesforce.op.UID
+import com.salesforce.op.features.LambdaRegistry
+import com.salesforce.op.features.types.FeatureType
+import com.salesforce.op.stages.base.unary.{UnaryLambdaTransformer, UnaryTransformer}
 
+import scala.reflect.runtime.universe.TypeTag
 
-@RunWith(classOf[JUnitRunner])
-class OpMinMaxEstimatorReaderWriterTest extends OpPipelineStageReaderWriterTest {
-  private val minMax = new MinMaxNormEstimator().setInput(weight).setMetadata(meta)
+/**
+ * Lambda transformers factory - one place to create all lambda transformers:
+ * unary, binary, ternary, quaternary, sequence etc.
+ */
+case object LambdaTransformer {
 
-  val stage: OpPipelineStageBase = minMax.fit(passengersDataSet).setMetadata(meta)
-
-  val expected =
-    Array(1.0.toReal, Real.empty, 0.10476190476190476.toReal, 0.0.toReal, 0.2761904761904762.toReal, 0.0.toReal)
-}
-
-
-class MinMaxNormEstimator(uid: String = UID[MinMaxNormEstimator])
-  extends UnaryEstimator[Real, Real](operationName = "minMaxNorm", uid = uid) {
-
-  def fitFn(dataset: Dataset[Real#Value]): UnaryModel[Real, Real] = {
-    val grouped = dataset.groupBy()
-    val maxVal = grouped.max().first().getDouble(0)
-    val minVal = grouped.min().first().getDouble(0)
-    new MinMaxNormEstimatorModel(
-      min = minVal,
-      max = maxVal,
-      seq = Seq(minVal, maxVal),
-      map = Map("a" -> Map("b" -> 1.0, "c" -> 2.0), "d" -> Map.empty),
-      operationName = operationName,
+  /**
+   * Transformer that takes a single input feature and produces
+   * a single new output feature using the specified function.
+   * Performs row wise transformation specified in transformFn.
+   */
+  def unary[A <: FeatureType : TypeTag, B <: FeatureType : TypeTag](
+    fn: A => B,
+    operationName: String,
+    uid: String = UID[UnaryLambdaTransformer[A, B]]
+  )(implicit ttov: TypeTag[B#Value], pos: sourcecode.Position): UnaryTransformer[A, B] = {
+    val lambdaPosition = new LambdaPosition(pos)
+    LambdaRegistry.register[A, B](lambdaPosition, fn)
+    new UnaryLambdaTransformer[A, B](
+      position = lambdaPosition,
+      operationName = operationNameWithPosition(operationName, lambdaPosition),
       uid = uid
     )
   }
+
+  // TODO: add factories for binary, ternary, quaternary, sequence etc.
+
+  private def operationNameWithPosition(operationName: String, pos: LambdaPosition): String = {
+    s"${operationName}_${pos.fileName}_L${pos.line}C${pos.column}"
+  }
 }
 
-final class MinMaxNormEstimatorModel private[op]
-(
-  val min: Double,
-  val max: Double,
-  val seq: Seq[Double],
-  val map: Map[String, Map[String, Double]],
-  operationName: String, uid: String
-) extends UnaryModel[Real, Real](operationName = operationName, uid = uid) {
-  def transformFn: Real => Real = r => r.v.map(v => (v - min) / (max - min)).toReal
+/**
+ * Unique source code position for lambda function
+ */
+case class LambdaPosition(fileName: String, line: Int, column: Int) {
+  def this(pos: sourcecode.Position) = this(pos.file.split('/').last.split('.').head, pos.line, pos.column)
 }

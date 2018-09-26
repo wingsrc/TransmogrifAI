@@ -98,8 +98,7 @@ class OpWorkflowTest extends FlatSpec with PassengerSparkFixtureTest {
   it should "throw an error if you try to set a non serializable stage" in {
     class NotSerializable(val v: Double)
     val ns = new NotSerializable(1.0)
-    val weightNotSer =
-      weight.transformWith(new UnaryLambdaTransformer[Real, Real]("blarg", v => v.value.map(_ + ns.v).toReal))
+    val weightNotSer = weight.map[Real](_.value.map(_ + ns.v).toReal, "blarg")
     val wf = new OpWorkflow().setReader(dataReader)
 
     val error = intercept[IllegalArgumentException](wf.setResultFeatures(weightNotSer))

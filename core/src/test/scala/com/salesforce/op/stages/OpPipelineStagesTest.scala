@@ -32,10 +32,10 @@ package com.salesforce.op.stages
 
 import com.salesforce.op.features.types._
 import com.salesforce.op.features.{OPFeature, TransientFeature}
-import com.salesforce.op.stages.base.unary.UnaryLambdaTransformer
+import com.salesforce.op.stages.base.unary.UnaryTransformer
 import com.salesforce.op.test.PassengerSparkFixtureTest
-import org.apache.spark.ml.param.ParamMap
 import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.param.ParamMap
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{BeforeAndAfterEach, FlatSpec}
@@ -120,18 +120,13 @@ class OpPipelineStagesTest
     copy.getInputFeatures should have length 1
   }
 
-  val testOp = new com.salesforce.op.stages.base.unary.UnaryLambdaTransformer[Real, Real](
-    operationName = "test",
-    transformFn = (i: Real) => i,
-    uid = "myID"
-  )
+  val testOp = weight.map[Real]((i: Real) => i, "test").originStage
 
   Spec[OpPipelineStageReader] should "load output from StageWriter and have correct transient feature state" in {
     val writer = new OpPipelineStageWriter(testOp)
-    testOp.setInput(weight)
     val reader = new OpPipelineStageReader(testOp)
     val stageJson = writer.writeToJsonString(savePath)
-    val stage = reader.loadFromJsonString(stageJson, savePath).asInstanceOf[UnaryLambdaTransformer[Real, Real]]
+    val stage = reader.loadFromJsonString(stageJson, savePath).asInstanceOf[UnaryTransformer[Real, Real]]
 
     val features = stage.get(stage.inputFeatures).get
     features should have length 1

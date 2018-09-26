@@ -33,7 +33,6 @@ package com.salesforce.op.dsl
 import com.salesforce.op.features.FeatureLike
 import com.salesforce.op.features.types._
 import com.salesforce.op.stages.base.binary.BinaryLambdaTransformer
-import com.salesforce.op.stages.base.unary.UnaryLambdaTransformer
 import com.salesforce.op.stages.impl.feature._
 import com.salesforce.op.stages.impl.preparators.{CorrelationType, CorrelationExclusion, SanityChecker}
 import com.salesforce.op.stages.impl.regression.IsotonicRegressionCalibrator
@@ -183,11 +182,10 @@ trait RichNumericFeature {
      * @tparam N value type
      * @return transformed feature
      */
-    def /[N](v: N)(implicit n: Numeric[N]): FeatureLike[Real] = {
-      f.transformWith(
-        new UnaryLambdaTransformer[I, Real](
-          operationName = "divideS",
-          transformFn = r => r.toDouble.map(_ / n.toDouble(v)).filter(Number.isValid).toReal)
+    def /[N](v: N)(implicit n: Numeric[N], pos: sourcecode.Position): FeatureLike[Real] = {
+      f.map[Real](
+        (r: I) => r.toDouble.map(_ / n.toDouble(v)).filter(Number.isValid).toReal,
+        operationName = "divideScalar"
       )
     }
 
@@ -199,11 +197,10 @@ trait RichNumericFeature {
      * @tparam N value type
      * @return transformed feature
      */
-    def *[N](v: N)(implicit n: Numeric[N]): FeatureLike[Real] = {
-      f.transformWith(
-        new UnaryLambdaTransformer[I, Real](
-          operationName = "multiplyS",
-          transformFn = r => r.toDouble.map(_ * n.toDouble(v)).filter(Number.isValid).toReal)
+    def *[N](v: N)(implicit n: Numeric[N], pos: sourcecode.Position): FeatureLike[Real] = {
+      f.map[Real](
+        (r: I) => r.toDouble.map(_ * n.toDouble(v)).filter(Number.isValid).toReal,
+        operationName = "multiplyScalar"
       )
     }
 
@@ -215,11 +212,10 @@ trait RichNumericFeature {
      * @tparam N value type
      * @return transformed feature
      */
-    def +[N](v: N)(implicit n: Numeric[N]): FeatureLike[Real] = {
-      f.transformWith(
-        new UnaryLambdaTransformer[I, Real](
-          operationName = "plusS",
-          transformFn = r => r.toDouble.map(_ + n.toDouble(v)).toReal)
+    def +[N](v: N)(implicit n: Numeric[N], pos: sourcecode.Position): FeatureLike[Real] = {
+      f.map[Real](
+        (r: I) => r.toDouble.map(_ + n.toDouble(v)).toReal,
+        operationName = "plusScalar"
       )
     }
 
@@ -231,11 +227,10 @@ trait RichNumericFeature {
      * @tparam N value type
      * @return transformed feature
      */
-    def -[N](v: N)(implicit n: Numeric[N]): FeatureLike[Real] = {
-      f.transformWith(
-        new UnaryLambdaTransformer[I, Real](
-          operationName = "minusS",
-          transformFn = r => r.toDouble.map(_ - n.toDouble(v)).toReal)
+    def -[N](v: N)(implicit n: Numeric[N], pos: sourcecode.Position): FeatureLike[Real] = {
+      f.map[Real](
+        (r: I) => r.toDouble.map(_ - n.toDouble(v)).toReal,
+        operationName = "minusScalar"
       )
     }
 

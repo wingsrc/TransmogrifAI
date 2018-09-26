@@ -31,13 +31,14 @@
 package com.salesforce.op.stages.base.unary
 
 import com.salesforce.op.features.types._
+import com.salesforce.op.stages.LambdaTransformer
 import com.salesforce.op.test.{OpTransformerSpec, TestFeatureBuilder}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 
 
 @RunWith(classOf[JUnitRunner])
-class UnaryTransformerTest extends OpTransformerSpec[Real, UnaryLambdaTransformer[Real, Real]] {
+class UnaryTransformerTest extends OpTransformerSpec[Real, UnaryTransformer[Real, Real]] {
 
   /**
    * Input Dataset to transform
@@ -47,9 +48,9 @@ class UnaryTransformerTest extends OpTransformerSpec[Real, UnaryLambdaTransforme
   /**
    * [[OpTransformer]] instance to be tested
    */
-  val transformer = new UnaryLambdaTransformer[Real, Real](
-    operationName = "unary",
-    transformFn = r => r.v.map(_ * 2.0).toReal
+  val transformer = LambdaTransformer.unary[Real, Real](
+    fn = r => r.v.map(_ * 2.0).toReal,
+    operationName = "unary"
   ).setInput(f1)
 
   /**

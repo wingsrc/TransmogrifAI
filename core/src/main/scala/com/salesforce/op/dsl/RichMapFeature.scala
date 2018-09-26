@@ -31,8 +31,8 @@
 package com.salesforce.op.dsl
 
 import com.salesforce.op.features.FeatureLike
-import com.salesforce.op.features.types.{BinaryMap, _}
-import com.salesforce.op.stages.base.unary.UnaryLambdaTransformer
+import com.salesforce.op.features.types._
+import com.salesforce.op.stages.LambdaTransformer
 import com.salesforce.op.stages.impl.feature._
 import com.salesforce.op.utils.text.Language
 import org.apache.spark.ml.linalg.Vectors
@@ -974,13 +974,12 @@ trait RichMapFeature {
       blackListKeys: Array[String] = Array.empty,
       trackNulls: Boolean = TransmogrifierDefaults.TrackNulls,
       others: Array[FeatureLike[EmailMap]] = Array.empty
-    ): FeatureLike[OPVector] = {
+    )(implicit pos: sourcecode.Position): FeatureLike[OPVector] = {
       val domains: Array[FeatureLike[PickListMap]] = (f +: others).map { e =>
         val transformer = new OPMapTransformer[Email, PickList, EmailMap, PickListMap](
           operationName = "emailToPickListMap",
-          transformer = new UnaryLambdaTransformer[Email, PickList](
-            operationName = "emailToPickList",
-            transformFn = _.domain.toPickList
+          transformer = LambdaTransformer.unary[Email, PickList](
+            _.domain.toPickList, operationName = "emailToPickList"
           )
         )
         transformer.setInput(e).getOutput()
@@ -1023,18 +1022,15 @@ trait RichMapFeature {
       blackListKeys: Array[String] = Array.empty,
       trackNulls: Boolean = TransmogrifierDefaults.TrackNulls,
       others: Array[FeatureLike[URLMap]] = Array.empty
-    ): FeatureLike[OPVector] = {
+    )(implicit pos: sourcecode.Position): FeatureLike[OPVector] = {
       val domains: Array[FeatureLike[PickListMap]] = (f +: others).map { e =>
-        val transformer =
-          new UnaryLambdaTransformer[URLMap, PickListMap](
-            operationName = "urlMapToPickListMap",
-            transformFn = _.value
-              .mapValues(v => if (v.toURL.isValid) v.toURL.domain else None)
-              .collect { case (k, Some(v)) => k -> v }.toPickListMap
-          )
-        transformer.setInput(e).getOutput()
+        e.map[PickListMap](
+          _.value
+            .mapValues(v => if (v.toURL.isValid) v.toURL.domain else None)
+            .collect { case (k, Some(v)) => k -> v }.toPickListMap,
+          operationName = "urlMapToPickListMap"
+        )
       }
-
       domains.head.vectorize(
         topK = topK, minSupport = minSupport, cleanText = cleanText, cleanKeys = cleanKeys,
         whiteListKeys = whiteListKeys, blackListKeys = blackListKeys,
@@ -1047,13 +1043,14 @@ trait RichMapFeature {
      *
      * @param f FeatureLike of URLMap
      */
-    implicit class RichPredicitionFeature(val f: FeatureLike[Prediction]) {
+    implicit class RichPredictionFeature(val f: FeatureLike[Prediction]) {
 
       /**
        * Takes single output feature from model of type Prediction and flattens it into 3 features
        * @return prediction, rawPrediction, probability
        */
-      def tupled(): (FeatureLike[RealNN], FeatureLike[OPVector], FeatureLike[OPVector]) = {
+      def tupled(implicit pos: sourcecode.Position):
+      (FeatureLike[RealNN], FeatureLike[OPVector], FeatureLike[OPVector]) = {
         (f.map[RealNN](_.prediction.toRealNN),
           f.map[OPVector]{ p => Vectors.dense(p.rawPrediction).toOPVector },
           f.map[OPVector]{ p => Vectors.dense(p.probability).toOPVector }

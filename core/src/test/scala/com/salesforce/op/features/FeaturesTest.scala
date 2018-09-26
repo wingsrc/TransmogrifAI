@@ -183,10 +183,10 @@ class FeaturesTest extends WordSpec with PassengerFeaturesTest with TestCommon {
       }
       "print a multi stage tree" in {
         ((height / 2) * weight + 1).prettyParentStages shouldBe
-          """|+-- plusS
+          """|+-- plusScalar
              ||    +-- multiply
              ||    |    +-- SumReal(weight)
-             ||    |    +-- divideS
+             ||    |    +-- divideScalar
              ||    |    |    +-- SumRealNN(height)
              |""".stripMargin
       }
