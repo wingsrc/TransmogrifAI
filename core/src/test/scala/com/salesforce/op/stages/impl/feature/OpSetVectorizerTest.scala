@@ -333,7 +333,8 @@ class OpSetVectorizerTest extends FlatSpec with TestSparkContext with AttributeA
       (Some("A"), Some("James")),
       (None, Some("Garth"))
     )
-    val (localDF, f1, f2) = TestFeatureBuilder(localData.map(v => v._1.toPickList -> v._2.toPickList))
+    val (localDF, f1, f2) = TestFeatureBuilder(localData.map(v => v._1.
+      toPickList -> v._2.toPickList))
     val vectorized = Seq(f1, f2).transmogrify()
 
     val transformed = new OpWorkflow().setResultFeatures(vectorized).transform(localDF)
