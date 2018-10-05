@@ -1,41 +1,69 @@
+/*
+ * Copyright (c) 2017, Salesforce.com, Inc.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * * Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ *
+ * * Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ *
+ * * Neither the name of the copyright holder nor the names of its
+ *   contributors may be used to endorse or promote products derived from
+ *   this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 package com.salesforce.op.stages.impl.feature
 
 import com.salesforce.op.UID
-import com.salesforce.op.features.{Feature, FeatureLike, FeatureSparkTypes, FeatureUID}
+import com.salesforce.op.features.{FeatureLike, FeatureUID}
 import com.salesforce.op.features.types.{Text, _}
-import com.salesforce.op.stages.base.binary.{BinaryEstimator, BinaryModel, BinaryTransformer}
+import com.salesforce.op.stages.base.binary.BinaryTransformer
 import com.salesforce.op.stages.base.unary.{UnaryEstimator, UnaryModel}
 import com.salesforce.op.stages.{OpPipelineStage1to2, makeOutputName}
-import com.sun.tools.javac.code.TypeTag
+
+import scala.reflect.runtime.universe.TypeTag
 import com.twitter.algebird.Operators._
 import com.twitter.algebird.Semigroup
-import org.apache.spark.ml.param.{BooleanParam, StringArrayParam}
+import org.apache.spark.ml.param.BooleanParam
 import org.apache.spark.ml.{Estimator, Model}
+import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.{DataFrame, Dataset, Encoder}
 
-class YoEstimator(val uid: String = UID[YoEstimator], override val stage1OperationName: String = "text",
-  override val stage2OperationName: String = "picklist")(
-  implicit val tti: TypeTag[Text],
-  val tto1: TypeTag[Text],
-  val tto2: TypeTag[OPVector],
-  val ttiv: TypeTag[Text#Value],
-  val ttov1: TypeTag[Text#Value],
-  val ttov2: TypeTag[OPVector#Value]
+class YoEstimator(val uid: String = UID[YoEstimator], val stage1OperationName: String = "text",
+  val stage2OperationName: String = "picklist")(
+  implicit val i1ttag: TypeTag[Text],
+  val o2ttag: TypeTag[PickList],
+  val i1ttiv: TypeTag[Text#Value],
+  val o2ttov: TypeTag[PickList#Value]
 ) extends Estimator[YoModel] with OpPipelineStage1to2[Text, Text, PickList] {
-  
+
 
   private[op] lazy val stage1 = new YoUnary().setInput(in1.asFeatureLike[Text])
 
   private[op] lazy val stage2 = new YoBinary().setInput(in1.asFeatureLike[Text], stage1.getOutput())
 
-  implicit val iEncoder: Encoder[Text#Value] = FeatureSparkTypes.featureTypeEncoder[Text]
-  val iConvert = FeatureTypeSparkConverter[Text]()
-
 
   override def fit(dataset: Dataset[_]): YoModel = {
     val model = stage1.fit(dataset).asInstanceOf[YoUnaryModel]
-    val stage2 = new YoBinary().setIsCateorical(model.isCategorical)
+    println(model.isCategorical)
+    val stage2 = new YoBinary().setIsCategorical(model.isCategorical)
       .setInput(in1.asFeatureLike[Text], stage1.getOutput())
+print(stage2.getCategorical)
     new YoModel(stage1 = model, stage2 = stage2, uid = uid)
   }
 
@@ -54,6 +82,8 @@ class YoUnary(override val uid: String = UID[YoUnary], override val operationNam
     operationName = operationName,
     uid = uid
   ) with CleanTextFun {
+  private implicit val textStatsSeqEnc: Encoder[TextStats] = ExpressionEncoder[TextStats]()
+
   private def computeTextStats(text: Text#Value, shouldCleanText: Boolean = true): TextStats = {
     val valueCounts = text match {
       case Some(v) => Map(cleanTextFn(v, shouldCleanText) -> 1)
@@ -74,7 +104,9 @@ class YoUnary(override val uid: String = UID[YoUnary], override val operationNam
 
 class YoUnaryModel(val isCategorical: Boolean, uid: String = UID[YoEstimator],
   operationName: String = "yo") extends UnaryModel[Text, Text](operationName = operationName, uid = uid) {
-  override def transformFn: Text => Text = (row: Text) => if (isCategorical) Text.empty else row
+  override def transformFn: Text => Text = (row: Text) => {
+    if (isCategorical) Text.empty else row
+  }
 }
 
 class YoBinary(uid: String = UID[YoBinary],
@@ -85,8 +117,9 @@ class YoBinary(uid: String = UID[YoBinary],
     parent = this, name = "isCategorical", doc = "is Categorical?"
   )
 
-  def setIsCateorical(value: Boolean): this.type = set(isCategorical, value)
+  def setIsCategorical(value: Boolean): this.type = set(isCategorical, value)
 
+  def getCategorical: Boolean = $(isCategorical)
   setDefault(isCategorical, false)
 
   override def transformFn: (Text, Text) => PickList = { (i1: Text, i2: Text) =>
@@ -108,6 +141,11 @@ class YoModel
 
   override def getOutput(): (FeatureLike[Text], FeatureLike[PickList]) = (stage1.getOutput(), stage2.getOutput())
 
-  override def transform(dataset: Dataset[_]): DataFrame = stage2.transform(stage1.transform(dataset))
+  override def transform(dataset: Dataset[_]): DataFrame = {
+    val ds = stage1.transform(dataset)
+    println("Stage2")
+    println(stage2.getCategorical)
+    stage2.transform(ds)
+  }
 }
 

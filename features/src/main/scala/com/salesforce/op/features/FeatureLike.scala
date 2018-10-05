@@ -40,6 +40,50 @@ import scalax.collection._
 import scala.reflect.runtime.universe.WeakTypeTag
 import scala.util.{Failure, Success, Try}
 
+trait FeatureEitherLike[O1 <: FeatureType, O2 <:FeatureType] {
+
+  def left: FeatureLike[O1]
+  def right: FeatureLike[O1]
+
+
+
+
+  /**
+   * Feature name
+   */
+  val name: String
+
+  /**
+   * Unique identifier of the feature instance
+   */
+  val uid: String
+
+  /**
+   * Is this feature a response or a predictor
+   */
+  val isResponse: Boolean
+
+  /**
+   * Origin stage which resulted into creating this feature (transformer or estimator)
+   */
+  val originStage: OpPipelineStage[O1, O2]
+
+  /**
+   * The input features of the origin stage
+   */
+  val parents: Seq[OPFeature]
+
+
+
+
+  /**
+   * A handy logger instance
+   */
+  @transient protected lazy val log = LoggerFactory.getLogger(this.getClass)
+
+
+}
+
 /**
  * Feature definition
  *

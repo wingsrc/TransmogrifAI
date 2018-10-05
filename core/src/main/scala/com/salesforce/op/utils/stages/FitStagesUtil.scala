@@ -262,6 +262,7 @@ private[op] case object FitStagesUtil {
     val stages = stagesLayer.map(_._1)
     val (estimators, noFit) = stages.partition(_.isInstanceOf[Estimator[_]])
     val fitEstimators = estimators.map { case e: Estimator[_] =>
+      println(e)
       e.fit(train) match {
         case m: HasTestEval if hasTest =>
           m.evaluateModel(test)

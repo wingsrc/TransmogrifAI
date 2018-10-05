@@ -167,6 +167,14 @@ trait OpPipelineStageBase extends OpPipelineStageParams with MLWritable {
 
 }
 
+trait OpPipelineStage[O1 <: FeatureType, O2 <: FeatureType] extends OpPipelineStageBase {
+
+  self: PipelineStage =>
+
+  type InputFeatures
+  final override type OutputFeatures = FeatureEither[O1, O2]
+
+}
 
 /**
  * TransmogrifAI Base Pipeline Stage allowing to specify Input Feature types and a single Output Feature type
