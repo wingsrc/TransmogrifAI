@@ -464,7 +464,7 @@ case object ModelInsights {
         .orElse(model.flatMap(m => makeMeta(m.parent.asInstanceOf[ModelSelector[_, _]])))
         // finally try to get it from the last vector stage
         .orElse(
-        stages.filter(_.getOutput().isSubtypeOf[OPVector]).lastOption
+        stages.filter(_.getOutput().asInstanceOf[FeatureBase].isSubtypeOf[OPVector]).lastOption
           .map(v => OpVectorMetadata(v.getOutputFeatureName, v.getMetadata()))
       )
     }

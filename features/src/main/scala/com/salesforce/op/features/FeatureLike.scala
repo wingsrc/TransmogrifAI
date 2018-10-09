@@ -40,13 +40,10 @@ import scalax.collection._
 import scala.reflect.runtime.universe.WeakTypeTag
 import scala.util.{Failure, Success, Try}
 
-trait FeatureEitherLike[O1 <: FeatureType, O2 <:FeatureType] {
+trait FeatureBase {
+  def wtt: WeakTypeTag[_ <: FeatureType]
 
-  def left: FeatureLike[O1]
-  def right: FeatureLike[O1]
-
-
-
+  def typeName: String
 
   /**
    * Feature name
@@ -66,50 +63,7 @@ trait FeatureEitherLike[O1 <: FeatureType, O2 <:FeatureType] {
   /**
    * Origin stage which resulted into creating this feature (transformer or estimator)
    */
-  val originStage: OpPipelineStage[O1, O2]
-
-  /**
-   * The input features of the origin stage
-   */
-  val parents: Seq[OPFeature]
-
-
-
-
-  /**
-   * A handy logger instance
-   */
-  @transient protected lazy val log = LoggerFactory.getLogger(this.getClass)
-
-
-}
-
-/**
- * Feature definition
- *
- * @tparam O feature value type
- */
-trait FeatureLike[O <: FeatureType] {
-
-  /**
-   * Feature name
-   */
-  val name: String
-
-  /**
-   * Unique identifier of the feature instance
-   */
-  val uid: String
-
-  /**
-   * Is this feature a response or a predictor
-   */
-  val isResponse: Boolean
-
-  /**
-   * Origin stage which resulted into creating this feature (transformer or estimator)
-   */
-  val originStage: OpPipelineStage[O]
+  val originStage: OpPipelineStageBase
 
   /**
    * The input features of the origin stage
@@ -121,30 +75,14 @@ trait FeatureLike[O <: FeatureType] {
    */
   val distributions: Seq[FeatureDistributionLike]
 
-  /**
-   * Weak type tag of the feature type O
-   */
-  implicit val wtt: WeakTypeTag[O]
+
+  def isSubtypeOf[T <: FeatureType : WeakTypeTag]: Boolean
 
   /**
    * A handy logger instance
    */
   @transient protected lazy val log = LoggerFactory.getLogger(this.getClass)
 
-  /**
-   * Check whether this feature's type [[O]] is a subtype of the given feature type [[T]]
-   *
-   * @tparam T the feature type to check
-   * @return true if [[O]] conforms to [[T]], false otherwise
-   */
-  final def isSubtypeOf[T <: FeatureType : WeakTypeTag]: Boolean = FeatureType.isSubtype[O, T]
-
-  /**
-   * Feature type name
-   *
-   * @return feature type name
-   */
-  final def typeName: String = FeatureType.typeName[O](wtt)
 
   /**
    * Is this feature is raw or not (i.e. has no parent features)
@@ -161,41 +99,6 @@ trait FeatureLike[O <: FeatureType] {
    */
   final def toJson(pretty: Boolean = true): String = FeatureJsonHelper.toJsonString(this, pretty = pretty)
 
-  /**
-   * Tests the equality of the FeatureLike objects
-   *
-   * Origin Stage is tested by uid
-   *
-   * Parents are test by uid and order dependent. This is because they are used as inputs to the origin stage
-   * and input parameters may not be commutative
-   */
-  final override def equals(in: Any): Boolean = in match {
-    case f: FeatureLike[O] => name == f.name && sameOrigin(f) && parents.map(_.uid) == f.parents.map(_.uid)
-    case _ => false
-  }
-
-  /**
-   * Tests the equality of the FeatureLike objects
-   *
-   * Origin Stage is tested by uid
-   *
-   * Parents are test by uid and order dependent. This is because they are used as inputs to the origin stage
-   * and input parameters may not be commutative
-   */
-  final def sameOrigin(in: Any): Boolean = in match {
-    case f: FeatureLike[O] => {
-      isResponse == f.isResponse &&
-        wtt.tpe =:= f.wtt.tpe && {
-        originStage -> f.originStage match {
-          case (null, null) => true
-          case (null, _) => false
-          case (_, null) => false
-          case (os, fos) => os.uid == fos.uid
-        }
-      }
-    }
-    case _ => false
-  }
 
   /**
    * Returns the hash code of this feature
@@ -203,6 +106,13 @@ trait FeatureLike[O <: FeatureType] {
    * @return hash code
    */
   final override def hashCode: Int = uid.hashCode
+
+  final override def equals(in: Any): Boolean = in match {
+    case f: FeatureBase => name == f.name && sameOrigin(f) && parents.map(_.uid) == f.parents.map(_.uid)
+    case _ => false
+  }
+
+
 
   final override def toString: String = {
     val oid = Option(originStage).map(_.uid).orNull
@@ -212,96 +122,6 @@ trait FeatureLike[O <: FeatureType] {
       s" distributions = ${distributions})"
   }
 
-  /**
-   * Construct a raw feature instance from this feature which can be applied on a Dataframe.
-   * Use this functionality when stacking workflows, e.g. when some features of a workflow
-   * are used as raw or input features of another workflow.
-   *
-   * @param isResponse should make response or a predictor feature
-   * @return new raw feature of the same type
-   */
-  final def asRaw(isResponse: Boolean = isResponse): FeatureLike[O] = {
-    val raw = FeatureBuilder.fromRow[O](name)(wtt)
-    if (isResponse) raw.asResponse else raw.asPredictor
-  }
-
-  /**
-   * Transform the feature with a given transformation stage and an input feature
-   *
-   * @param stage transformer/estimator
-   * @tparam U output type
-   * @return transformed feature
-   */
-  final def transformWith[U <: FeatureType](
-    stage: OpPipelineStage1[O, U]
-  ): FeatureLike[U] = {
-    stage.setInput(this).getOutput()
-  }
-
-  /**
-   * Transform the feature with a given transformation stage and input features
-   *
-   * @param stage transformer/estimator
-   * @param f     other feature
-   * @tparam I other feature input type
-   * @tparam U output type
-   * @return transformed feature
-   */
-  final def transformWith[I <: FeatureType, U <: FeatureType](
-    stage: OpPipelineStage2[O, I, U], f: FeatureLike[I]
-  ): FeatureLike[U] = {
-    stage.setInput(this, f).getOutput()
-  }
-
-  /**
-   * Transform the feature with a given transformation stage and input features
-   *
-   * @param stage transformer/estimator
-   * @param f1    other feature1
-   * @param f2    other feature2
-   * @tparam I1 f1 input type
-   * @tparam I2 f2 input type
-   * @tparam U  output type
-   * @return transformed feature
-   */
-  final def transformWith[I1 <: FeatureType, I2 <: FeatureType, U <: FeatureType](
-    stage: OpPipelineStage3[O, I1, I2, U], f1: FeatureLike[I1], f2: FeatureLike[I2]
-  ): FeatureLike[U] = {
-    stage.setInput(this, f1, f2).getOutput()
-  }
-
-  /**
-   * Transform the feature with a given transformation stage and input features
-   *
-   * @param stage transformer/estimator
-   * @param f1    other feature1
-   * @param f2    other feature2
-   * @param f3    other feature2
-   * @tparam I1 f1 input type
-   * @tparam I2 f2 input type
-   * @tparam I3 f3 input type
-   * @tparam U  output type
-   * @return transformed feature
-   */
-  final def transformWith[I1 <: FeatureType, I2 <: FeatureType, I3 <: FeatureType, U <: FeatureType](
-    stage: OpPipelineStage4[O, I1, I2, I3, U], f1: FeatureLike[I1], f2: FeatureLike[I2], f3: FeatureLike[I3]
-  ): FeatureLike[U] = {
-    stage.setInput(this, f1, f2, f3).getOutput()
-  }
-
-  /**
-   * Transform the feature with a given transformation stage and input features
-   *
-   * @param stage transformer/estimator
-   * @param fs    other features
-   * @tparam U output type
-   * @return transformed feature
-   */
-  final def transformWith[U <: FeatureType](
-    stage: OpPipelineStageN[O, U], fs: Array[FeatureLike[O]]
-  ): FeatureLike[U] = {
-    stage.setInput(this +: fs).getOutput()
-  }
 
   /**
    * History of all stages and origin features used to create a given feature
@@ -439,7 +259,7 @@ trait FeatureLike[O <: FeatureType] {
             if (log.isDebugEnabled) {
               logDebug(s"${feature.name} with origin stage $stage with distance $distance")
             }
-            stage -> distance
+            stage.asInstanceOf[OPStage] -> distance
           }).toMap
       }
 
@@ -469,6 +289,40 @@ trait FeatureLike[O <: FeatureType] {
   }
 
   /**
+   * Tests the equality of the FeatureLike objects
+   *
+   * Origin Stage is tested by uid
+   *
+   * Parents are test by uid and order dependent. This is because they are used as inputs to the origin stage
+   * and input parameters may not be commutative
+   */
+  final def sameOrigin(in: Any): Boolean = in match {
+    case f: FeatureLike[_] => {
+      isResponse == f.isResponse &&
+        wtt.tpe =:= f.wtt.tpe && {
+        originStage -> f.originStage match {
+          case (null, null) => true
+          case (null, _) => false
+          case (_, null) => false
+          case (os, fos) => os.uid == fos.uid
+        }
+      }
+    }
+    case f: FeatureEitherLike[_, _] => {
+      isResponse == f.isResponse &&
+        wtt.tpe =:= f.wtt.tpe && {
+        originStage -> f.originStage match {
+          case (null, null) => true
+          case (null, _) => false
+          case (_, null) => false
+          case (os, fos) => os.uid == fos.uid
+        }
+      }
+    }
+    case _ => false
+  }
+
+  /**
    * Takes an array of stages and will try to replace all origin stages of features with
    * stage from the new stages with the same uid. This is used to make a copy of the feature
    * with the origin stage pointing at the fitted model resulting from an estimator rather
@@ -478,7 +332,7 @@ trait FeatureLike[O <: FeatureType] {
    * @return A feature with the origin stage (and the origin stages or all parent stages replaced
    *         with the stages in the map passed in)
    */
-  private[op] def copyWithNewStages(stages: Array[OPStage]): FeatureLike[O]
+  private[op] def copyWithNewStages(stages: Array[OPStage]): FeatureBase
 
   /**
    * Takes an a sequence of feature distributions assocaited with the feature
@@ -486,6 +340,152 @@ trait FeatureLike[O <: FeatureType] {
    * @param distributions Seq of the feature distributions for the feature
    * @return A feature with the distributions assocated
    */
-  private[op] def withDistributions(distributions: Seq[FeatureDistributionLike]): FeatureLike[O]
+  private[op] def withDistributions(distributions: Seq[FeatureDistributionLike]): FeatureBase
+
+
+}
+
+trait FeatureEitherLike[O1 <: FeatureType, O2 <: FeatureType] extends FeatureBase {
+
+  def left: FeatureLike[O1]
+
+  def right: FeatureLike[O2]
+
+  final override def isSubtypeOf[T <: FeatureType : WeakTypeTag]: Boolean = FeatureType.isSubtype[O1, T] ||
+    FeatureType.isSubtype[O2, T]
+
+  final override def typeName: String = FeatureType.typeName[O1](wtt1) + "_or_" + FeatureType.typeName[O2](wtt2)
+
+
+  /**
+   * Weak type tag of the feature type O1
+   */
+  implicit val wtt1: WeakTypeTag[O1]
+  /**
+   * Weak type tag of the feature type O2
+   */
+  implicit val wtt2: WeakTypeTag[O2]
+
+  override def wtt: WeakTypeTag[_ <: FeatureType] = wtt1
+
+}
+
+
+/**
+ * Feature definition
+ *
+ * @tparam O feature value type
+ */
+trait FeatureLike[O <: FeatureType] extends FeatureBase {
+  /**
+   * Weak type tag of the feature type O
+   */
+  implicit val wtt: WeakTypeTag[O]
+
+  final override def isSubtypeOf[T <: FeatureType : WeakTypeTag]: Boolean = FeatureType.isSubtype[O, T]
+
+  /**
+   * Feature type name
+   *
+   * @return feature type name
+   */
+  final override
+  def typeName: String = FeatureType.typeName[O](wtt)
+
+
+
+
+
+  /**
+   * Construct a raw feature instance from this feature which can be applied on a Dataframe.
+   * Use this functionality when stacking workflows, e.g. when some features of a workflow
+   * are used as raw or input features of another workflow.
+   *
+   * @param isResponse should make response or a predictor feature
+   * @return new raw feature of the same type
+   */
+  final def asRaw(isResponse: Boolean = isResponse): FeatureLike[O] = {
+    val raw = FeatureBuilder.fromRow[O](name)(wtt)
+    if (isResponse) raw.asResponse else raw.asPredictor
+  }
+
+  /**
+   * Transform the feature with a given transformation stage and an input feature
+   *
+   * @param stage transformer/estimator
+   * @tparam U output type
+   * @return transformed feature
+   */
+  final def transformWith[U <: FeatureType](
+    stage: OpPipelineStage1[O, U]
+  ): FeatureLike[U] = {
+    stage.setInput(this).getOutput()
+  }
+
+  /**
+   * Transform the feature with a given transformation stage and input features
+   *
+   * @param stage transformer/estimator
+   * @param f     other feature
+   * @tparam I other feature input type
+   * @tparam U output type
+   * @return transformed feature
+   */
+  final def transformWith[I <: FeatureType, U <: FeatureType](
+    stage: OpPipelineStage2[O, I, U], f: FeatureLike[I]
+  ): FeatureLike[U] = {
+    stage.setInput(this, f).getOutput()
+  }
+
+  /**
+   * Transform the feature with a given transformation stage and input features
+   *
+   * @param stage transformer/estimator
+   * @param f1    other feature1
+   * @param f2    other feature2
+   * @tparam I1 f1 input type
+   * @tparam I2 f2 input type
+   * @tparam U  output type
+   * @return transformed feature
+   */
+  final def transformWith[I1 <: FeatureType, I2 <: FeatureType, U <: FeatureType](
+    stage: OpPipelineStage3[O, I1, I2, U], f1: FeatureLike[I1], f2: FeatureLike[I2]
+  ): FeatureLike[U] = {
+    stage.setInput(this, f1, f2).getOutput()
+  }
+
+  /**
+   * Transform the feature with a given transformation stage and input features
+   *
+   * @param stage transformer/estimator
+   * @param f1    other feature1
+   * @param f2    other feature2
+   * @param f3    other feature2
+   * @tparam I1 f1 input type
+   * @tparam I2 f2 input type
+   * @tparam I3 f3 input type
+   * @tparam U  output type
+   * @return transformed feature
+   */
+  final def transformWith[I1 <: FeatureType, I2 <: FeatureType, I3 <: FeatureType, U <: FeatureType](
+    stage: OpPipelineStage4[O, I1, I2, I3, U], f1: FeatureLike[I1], f2: FeatureLike[I2], f3: FeatureLike[I3]
+  ): FeatureLike[U] = {
+    stage.setInput(this, f1, f2, f3).getOutput()
+  }
+
+  /**
+   * Transform the feature with a given transformation stage and input features
+   *
+   * @param stage transformer/estimator
+   * @param fs    other features
+   * @tparam U output type
+   * @return transformed feature
+   */
+  final def transformWith[U <: FeatureType](
+    stage: OpPipelineStageN[O, U], fs: Array[FeatureLike[O]]
+  ): FeatureLike[U] = {
+    stage.setInput(this +: fs).getOutput()
+  }
+
 
 }

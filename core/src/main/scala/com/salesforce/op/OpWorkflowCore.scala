@@ -32,7 +32,7 @@ package com.salesforce.op
 
 import com.salesforce.op.utils.stages.FitStagesUtil._
 import com.salesforce.op.utils.stages.FitStagesUtil
-import com.salesforce.op.features.OPFeature
+import com.salesforce.op.features.{FeatureBase, OPFeature}
 import com.salesforce.op.features.types.FeatureType
 import com.salesforce.op.filters.FeatureDistribution
 import com.salesforce.op.readers.{CustomReader, Reader, ReaderKey}
@@ -306,6 +306,7 @@ private[op] trait OpWorkflowCore {
    * @return index of the parent stage
    */
   protected def findOriginStageId(feature: OPFeature): Option[Int] =
-    stages.zipWithIndex.collect { case (s, i) if s.getOutput().sameOrigin(feature) => i }.headOption
+    stages.zipWithIndex.collect { case (s, i) if s.getOutput().asInstanceOf[FeatureBase]
+      .sameOrigin(feature) => i }.headOption
 
 }

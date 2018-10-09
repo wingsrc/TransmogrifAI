@@ -30,7 +30,7 @@
 
 package com.salesforce.op
 
-import com.salesforce.op.features.OPFeature
+import com.salesforce.op.features.{FeatureBase, OPFeature}
 import com.salesforce.op.filters.{FeatureDistribution, RawFeatureFilter, Summary}
 import com.salesforce.op.readers.Reader
 import com.salesforce.op.stages.OPStage
@@ -134,15 +134,17 @@ class OpWorkflow(val uid: String = UID[OpWorkflow]) extends OpWorkflowCore {
         val inputsChanged = blacklistRemoved.map{ f => allUpdated.find(u => u.sameOrigin(f)).getOrElse(f) }
         val oldOutput = stg.getOutput()
         Try{
-          stg.setInputFeatureArray(inputsChanged).setOutputFeatureName(oldOutput.name).getOutput()
+          stg.setInputFeatureArray(inputsChanged).setOutputFeatureName(oldOutput.asInstanceOf[FeatureBase].name)
+            .getOutput()
         } match {
-          case Success(out) => allUpdated += out
+          case Success(out) => allUpdated += out.asInstanceOf[FeatureBase]
           case Failure(e) =>
             if (initialResultFeatures.contains(oldOutput)) throw new RuntimeException(
               s"Blacklist of features (${allBlacklisted.map(_.name).mkString(", ")}) \n" +
                 s" created by RawFeatureFilter contained features critical to the creation of required result" +
-                s" feature (${oldOutput.name}) though the path: \n ${oldOutput.prettyParentStages} \n", e)
-            else allBlacklisted += oldOutput
+                s" feature (${oldOutput.asInstanceOf[FeatureBase].name}) though the path: \n" +
+                s" ${oldOutput.asInstanceOf[FeatureBase].prettyParentStages} \n", e)
+            else allBlacklisted += oldOutput.asInstanceOf[FeatureBase]
         }
       }
 
@@ -201,7 +203,7 @@ class OpWorkflow(val uid: String = UID[OpWorkflow]) extends OpWorkflowCore {
       val stages = for {
         layer <- uniqueStagesLayered
         (stage, distance) <- layer
-      } yield s"$stage with distance $distance with output ${stage.getOutput().name}"
+      } yield s"$stage with distance $distance with output ${stage.getOutput().asInstanceOf[FeatureBase].name}"
 
       log.debug("*" * 80)
       log.debug(s"Setting $total parent stages (sorted by distance desc):\n{}", stages.mkString("\n"))

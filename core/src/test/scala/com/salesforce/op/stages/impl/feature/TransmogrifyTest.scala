@@ -37,6 +37,7 @@ import com.salesforce.op.test.{PassengerSparkFixtureTest, TestOpVectorMetadataBu
 import com.salesforce.op.utils.spark.RichDataset._
 import com.salesforce.op.utils.spark.RichStructType._
 import com.salesforce.op._
+import com.salesforce.op.stages.OpPipelineStage
 import org.junit.runner.RunWith
 import org.scalatest.FlatSpec
 import org.scalatest.junit.JUnitRunner
@@ -70,7 +71,7 @@ class TransmogrifyTest extends FlatSpec with PassengerSparkFixtureTest with Attr
     }.toMap
     transformed.schema.toOpVectorMetadata(feature.name) shouldEqual
       TestOpVectorMetadataBuilder.withOpNamesAndHist(
-        feature.originStage,
+        feature.originStage.asInstanceOf[OpPipelineStage[_]],
         hist,
         (gender, "vecSet", List(IndCol(Some("OTHER")), IndCol(Some(TransmogrifierDefaults.NullString)))),
         (heightNoWindow, "vecReal", List(RootCol,

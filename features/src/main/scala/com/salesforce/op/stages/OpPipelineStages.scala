@@ -41,6 +41,7 @@ import org.apache.spark.ml.{PipelineStage, Transformer}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.StructType
 
+import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe.TypeTag
 import scala.util.{Success, Try}
 
@@ -164,15 +165,72 @@ trait OpPipelineStageBase extends OpPipelineStageParams with MLWritable {
   }
 
   final override def write: MLWriter = new OpPipelineStageWriter(this)
+  /**
+   * The name that the output feature and column should have if unset will use the default name
+   */
+  final private[op] val outputFeatureName = new Param[String](
+    parent = this, name = "outputFeatureName",
+    doc = "output name that overrides default output name for feature made by this stage"
+  )
+
+  def setOutputFeatureName(name: String): this.type = set(outputFeatureName, name)
+
+  /**
+   * Name of output feature (i.e. column created by this stage)
+   */
+  final def getOutputFeatureName: String =
+    get(outputFeatureName).getOrElse(makeOutputName(outputFeatureUid, getTransientFeatures()))
+  protected[op] def outputFeatureUid: String
 
 }
 
-trait OpPipelineStage[O1 <: FeatureType, O2 <: FeatureType] extends OpPipelineStageBase {
+trait OpPipelineStageEither[O1 <: FeatureType, O2 <: FeatureType] extends OpPipelineStageBase {
 
   self: PipelineStage =>
 
   type InputFeatures
-  final override type OutputFeatures = FeatureEither[O1, O2]
+  final override type OutputFeatures = FeatureEitherLike[O1, O2]
+
+  final override def outputAsArray(out: OutputFeatures): Array[OPFeature] =
+    Array[FeatureEitherLike[O1, O2]](out).map(_.asInstanceOf[OPFeature])
+
+
+
+
+  /**
+   * Should output feature be a response? Yes, if any of the input features are.
+   * @return true if the the output feature should be a response
+   */
+  def outputIsResponse: Boolean = getTransientFeatures().exists(_.isResponse)
+}
+
+trait OpPipelineStage1Either[I <: FeatureType, O1 <: FeatureType, O2 <: FeatureType] extends
+  OpPipelineStageEither[O1, O2] with HasIn1 {
+  self: PipelineStage =>
+
+  implicit val tto1: TypeTag[O1]
+  implicit val ttov1: TypeTag[O1#Value]
+  implicit val tto2: TypeTag[O2]
+  implicit val ttov2: TypeTag[O2#Value]
+
+
+  final override type InputFeatures = FeatureLike[I]
+
+  final override def checkInputLength(features: Array[_]): Boolean = features.length == 1
+
+  final override def inputAsArray(in: InputFeatures): Array[OPFeature] = Array(in)
+
+  protected[op] override def outputFeatureUid: String = FeatureUIDEither[O1, O2](uid)
+
+  override def getOutput(): FeatureEitherLike[O1, O2] = new FeatureEither[O1, O2](
+    uid = outputFeatureUid,
+    name = getOutputFeatureName,
+    originStage = this,
+    isResponse = outputIsResponse,
+    parents = getInputFeatures()
+  )(tto1, tto2)
+
+
 
 }
 
@@ -191,21 +249,6 @@ trait OpPipelineStage[O <: FeatureType] extends OpPipelineStageBase {
 
   protected[op] def outputFeatureUid: String
 
-  /**
-   * The name that the output feature and column should have if unset will use the default name
-   */
-  final private[op] val outputFeatureName = new Param[String](
-    parent = this, name = "outputFeatureName",
-    doc = "output name that overrides default output name for feature made by this stage"
-  )
-
-  def setOutputFeatureName(name: String): this.type = set(outputFeatureName, name)
-
-  /**
-   * Name of output feature (i.e. column created by this stage)
-   */
-  final def getOutputFeatureName: String =
-    get(outputFeatureName).getOrElse(makeOutputName(outputFeatureUid, getTransientFeatures()))
 
   /**
    * Should output feature be a response? Yes, if any of the input features are.
@@ -599,6 +642,34 @@ trait OpPipelineStage2N[I1 <: FeatureType, I2 <: FeatureType, O <: FeatureType] 
  */
 private[op] trait OpTransformer {
   self: OpPipelineStage[_] with Transformer =>
+
+  /**
+   * Feature name (key) -> value lookup, e.g Row, Map etc.
+   */
+  type KeyValue = String => Any
+
+  /**
+   * Creates a transform function to transform Row to a value
+   * @return a transform function to transform Row to a value
+   */
+  def transformRow: Row => Any = r => transformKeyValue(r.getAny)
+
+  /**
+   * Creates a transform function to transform Map to a value
+   * @return a transform function to transform Map to a value
+   */
+  def transformMap: Map[String, Any] => Any = m => transformKeyValue(m.apply)
+
+  /**
+   * Creates a transform function to transform any key/value to a value
+   * @return a transform function to transform any key/value to a value
+   */
+  def transformKeyValue: KeyValue => Any
+
+}
+
+private[op] trait OpTransformerEither {
+  self: OpPipelineStageEither[_, _] with Transformer =>
 
   /**
    * Feature name (key) -> value lookup, e.g Row, Map etc.

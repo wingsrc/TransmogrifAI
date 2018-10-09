@@ -31,6 +31,7 @@
 package com.salesforce.op.evaluators
 
 import com.salesforce.op.evaluators.BinaryClassEvalMetrics._
+import com.salesforce.op.features.FeatureLike
 import com.salesforce.op.features.types._
 import com.salesforce.op.stages.impl.classification.{BinaryClassificationModelSelector, OpLogisticRegression}
 import com.salesforce.op.stages.impl.selector.ModelSelectorNames.EstimatorType
@@ -63,7 +64,7 @@ class OpBinaryClassificationEvaluatorTest extends FlatSpec with TestSparkContext
       (0.0, Vectors.dense(0.1, 3.3, 0.1))
     ).map(v => v._1.toRealNN -> v._2.toOPVector)
   )
-  val label = rawLabel.copy(isResponse = true)
+  val label = rawLabel.copy(isResponse = true).asInstanceOf[FeatureLike[RealNN]]
 
 
   val (test_ds, test_rawLabel, test_features) = TestFeatureBuilder[RealNN, OPVector](
@@ -86,14 +87,14 @@ class OpBinaryClassificationEvaluatorTest extends FlatSpec with TestSparkContext
       (0.0, Vectors.dense(50.1, -3.3, 6.1))
     ).map(v => v._1.toRealNN -> v._2.toOPVector)
   )
-  val test_label = test_rawLabel.copy(isResponse = true)
+  val test_label = test_rawLabel.copy(isResponse = true).asInstanceOf[FeatureLike[RealNN]]
 
   val (zero_ds, zero_rawLabel, zero_features) = TestFeatureBuilder[RealNN, OPVector](
     Seq(
       (0.0, Vectors.dense(4.0, 300, 90))
     ).map(v => v._1.toRealNN -> v._2.toOPVector)
   )
-  val zero_label = zero_rawLabel.copy(isResponse = true)
+  val zero_label = zero_rawLabel.copy(isResponse = true).asInstanceOf[FeatureLike[RealNN]]
 
 
   val (one_ds, one_rawLabel, one_features) = TestFeatureBuilder[RealNN, OPVector](
@@ -101,7 +102,7 @@ class OpBinaryClassificationEvaluatorTest extends FlatSpec with TestSparkContext
       (1.0, Vectors.dense(3.0, 54.4, 46.9))
     ).map(v => v._1.toRealNN -> v._2.toOPVector)
   )
-  val one_label = one_rawLabel.copy(isResponse = true)
+  val one_label = one_rawLabel.copy(isResponse = true).asInstanceOf[FeatureLike[RealNN]]
 
   val lr = new OpLogisticRegression()
   val lrParams = new ParamGridBuilder().addGrid(lr.regParam, Array(0.0)).build()

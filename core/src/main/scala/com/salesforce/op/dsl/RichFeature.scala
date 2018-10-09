@@ -30,7 +30,7 @@
 
 package com.salesforce.op.dsl
 
-import com.salesforce.op.features.FeatureLike
+import com.salesforce.op.features.{FeatureBase, FeatureLike}
 import com.salesforce.op.features.types._
 import com.salesforce.op.stages.base.binary.BinaryLambdaTransformer
 import com.salesforce.op.stages.base.quaternary.QuaternaryLambdaTransformer
@@ -216,7 +216,7 @@ trait RichFeature {
       feature.originStage match {
         case _: SparkWrapperParams[_] => feature.transformWith(new AliasTransformer(name))
         case _ if feature.isRaw => feature.transformWith(new AliasTransformer(name))
-        case s => s.setOutputFeatureName(name).getOutput()
+        case s => s.setOutputFeatureName(name).getOutput().asInstanceOf[FeatureLike[A]]
       }
     }
 

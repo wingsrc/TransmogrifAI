@@ -61,8 +61,8 @@ class OpWorkflowCoreTest extends FlatSpec with TestSparkContext {
   val response2 = RandomBinary(p).withProbabilityOfEmpty(0.0).take(count).map(_.toDouble.toRealNN(0))
   val (data, rawLabel, rawLabel2, features) = TestFeatureBuilder[RealNN, RealNN, OPVector]("label", "label2",
     "features", response.zip(response2).zip(vectors).map(v => (v._1._1, v._1._2, v._2)).toSeq)
-  val label = rawLabel.copy(isResponse = true)
-  val label2 = rawLabel2.copy(isResponse = true)
+  val label = rawLabel.copy(isResponse = true).asInstanceOf[FeatureLike[RealNN]]
+  val label2 = rawLabel2.copy(isResponse = true).asInstanceOf[FeatureLike[RealNN]]
 
   // LDA (nonCVTS Stage)
   val lda = new OpLDA()

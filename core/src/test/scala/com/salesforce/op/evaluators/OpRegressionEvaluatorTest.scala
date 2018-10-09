@@ -30,6 +30,7 @@
 
 package com.salesforce.op.evaluators
 
+import com.salesforce.op.features.FeatureLike
 import com.salesforce.op.features.types._
 import com.salesforce.op.stages.impl.classification.OpLogisticRegression
 import com.salesforce.op.stages.impl.regression.{OpLinearRegression, RegressionModelSelector}
@@ -60,7 +61,7 @@ class OpRegressionEvaluatorTest extends FlatSpec with TestSparkContext {
     ).map(v => v._1.toRealNN -> v._2.toOPVector)
   )
 
-  val label = rawLabel.copy(isResponse = true)
+  val label = rawLabel.copy(isResponse = true).asInstanceOf[FeatureLike[RealNN]]
 
   val lr = new OpLogisticRegression()
   val lrParams = new ParamGridBuilder().addGrid(lr.regParam, Array(0.0)).build()

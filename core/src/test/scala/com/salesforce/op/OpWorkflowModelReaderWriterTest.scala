@@ -299,8 +299,8 @@ class OpWorkflowModelReaderWriterTest
         s1.uid shouldBe s2.uid
         compareFeatures(s1.getInputFeatures(), s2.getInputFeatures())
 
-        val s1Feats: Array[OPFeature] = Array(s1.getOutput())
-        val s2Feats: Array[OPFeature] = Array(s2.getOutput())
+        val s1Feats: Array[OPFeature] = Array(s1.getOutput().asInstanceOf[OPFeature])
+        val s2Feats: Array[OPFeature] = Array(s2.getOutput().asInstanceOf[OPFeature])
         compareFeatures(s1Feats, s2Feats)
       }
     }

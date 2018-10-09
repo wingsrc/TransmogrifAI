@@ -30,6 +30,7 @@
 
 package com.salesforce.op.stages.impl.evaluator
 
+import com.salesforce.op.features.FeatureLike
 import com.salesforce.op.features.types._
 import com.salesforce.op.test.{TestFeatureBuilder, TestSparkContext}
 import org.apache.spark.ml.linalg.Vectors
@@ -56,14 +57,14 @@ class OPLogLossTest extends FlatSpec with TestSparkContext {
     ).map(v => (v._1.toRealNN, Prediction(v._4, v._2, v._3)))
   )
 
-  val label = rawLabel.copy(isResponse = true)
+  val label = rawLabel.copy(isResponse = true).asInstanceOf[FeatureLike[RealNN]]
   val expected: Double = -math.log(0.1 * 0.5 * 0.8 * 0.4 * 0.1 * 0.4 * 0.1) / 10.0
 
   val (dsEmpty, rawLabelEmpty, predEmpty) = TestFeatureBuilder[RealNN, Prediction](
     Seq()
   )
 
-  val labelEmpty = rawLabel.copy(isResponse = true)
+  val labelEmpty = rawLabel.copy(isResponse = true).asInstanceOf[FeatureLike[RealNN]]
 
 
   val logLoss = LogLoss.mulitLogLoss

@@ -30,6 +30,7 @@
 
 package com.salesforce.op.stages.impl.classification
 
+import com.salesforce.op.features.FeatureLike
 import com.salesforce.op.features.types._
 import com.salesforce.op.stages.impl.PredictionEquality
 import com.salesforce.op.stages.sparkwrappers.specific.{OpPredictorWrapper, OpPredictorWrapperModel}
@@ -60,7 +61,7 @@ class OpRandomForestClassifierTest extends
       )
     )
 
-  val labelMulti = rawLabelMulti.copy(isResponse = true)
+  val labelMulti = rawLabelMulti.copy(isResponse = true).asInstanceOf[FeatureLike[RealNN]]
 
   val estimator = new OpRandomForestClassifier().setInput(labelMulti, featuresMulti)
 

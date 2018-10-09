@@ -30,6 +30,7 @@
 
 package com.salesforce.op.evaluators
 
+import com.salesforce.op.features.{FeatureLike, OPFeature}
 import com.salesforce.op.features.types._
 import com.salesforce.op.stages.impl.classification.OpLogisticRegression
 import com.salesforce.op.test.{TestFeatureBuilder, TestSparkContext}
@@ -55,7 +56,7 @@ class EvaluatorsTest extends FlatSpec with TestSparkContext {
       (0.0, Vectors.dense(0.1, 3.3, 0.1))
     ).map(v => v._1.toRealNN -> v._2.toOPVector)
   )
-  val label = rawLabel.copy(isResponse = true)
+  val label = rawLabel.copy(isResponse = true).asInstanceOf[FeatureLike[RealNN]]
 
 
   val (test_ds, test_rawLabel, test_features) = TestFeatureBuilder[RealNN, OPVector](
@@ -78,7 +79,7 @@ class EvaluatorsTest extends FlatSpec with TestSparkContext {
       (0.0, Vectors.dense(50.1, -3.3, 6.1))
     ).map(v => v._1.toRealNN -> v._2.toOPVector)
   )
-  val test_label = test_rawLabel.copy(isResponse = true)
+  val test_label = test_rawLabel.copy(isResponse = true).asInstanceOf[FeatureLike[RealNN]]
 
   val testEstimator = new OpLogisticRegression()
     .setInput(label, features)

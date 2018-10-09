@@ -30,6 +30,7 @@
 
 package com.salesforce.op.evaluators
 
+import com.salesforce.op.features.FeatureLike
 import com.salesforce.op.features.types._
 import com.salesforce.op.test.{TestFeatureBuilder, TestSparkContext}
 import org.apache.spark.ml.linalg.Vectors
@@ -52,7 +53,7 @@ class OpMultiClassificationEvaluatorTest extends FlatSpec with TestSparkContext 
     TestFeatureBuilder[RealNN, Prediction](Seq.fill(numRows.toInt)(
       (RealNN(1.0), Prediction(0.0, Vectors.dense(10.0, 5.0, 1.0, 0.0, 0.0), Vectors.dense(0.70, 0.25, 0.05, 0.0, 0.0)))
     ))
-  val labelMulti = labelRawMulti.copy(isResponse = true)
+  val labelMulti = labelRawMulti.copy(isResponse = true).asInstanceOf[FeatureLike[RealNN]]
 
   // Predictions should never be correct for top1 (since correct class has 2nd highest probability).
   // For top3, it should be correct up to a threshold of 0.25

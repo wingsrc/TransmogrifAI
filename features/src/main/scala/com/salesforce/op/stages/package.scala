@@ -41,7 +41,7 @@ package object stages {
   /**
    * Some common type shortcuts
    */
-  type OPStage = OpPipelineStage[_ <: FeatureType]
+  type OPStage = OpPipelineStageBase
 
   /**
    * Generate the name of the output feature for multioutput stages

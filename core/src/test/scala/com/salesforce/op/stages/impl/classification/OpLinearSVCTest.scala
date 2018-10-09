@@ -30,6 +30,7 @@
 
 package com.salesforce.op.stages.impl.classification
 
+import com.salesforce.op.features.FeatureLike
 import com.salesforce.op.features.types._
 import com.salesforce.op.stages.impl.PredictionEquality
 import com.salesforce.op.stages.sparkwrappers.specific.{OpPredictorWrapper, OpPredictorWrapperModel}
@@ -56,7 +57,7 @@ class OpLinearSVCTest extends OpEstimatorSpec[Prediction, OpPredictorWrapperMode
       0.0.toRealNN -> Vectors.dense(0.1, 3.3, 0.1).toOPVector
     )
   )
-  val feature1 = rawFeature1.copy(isResponse = true)
+  val feature1 = rawFeature1.copy(isResponse = true).asInstanceOf[FeatureLike[RealNN]]
   val estimator = new OpLinearSVC().setInput(feature1, feature2)
 
   val expectedResult = Seq(

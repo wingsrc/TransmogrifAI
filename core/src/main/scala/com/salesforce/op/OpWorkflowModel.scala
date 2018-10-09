@@ -32,7 +32,7 @@ package com.salesforce.op
 
 import com.salesforce.op.evaluators.{EvaluationMetrics, OpEvaluatorBase}
 import com.salesforce.op.features.types.FeatureType
-import com.salesforce.op.features.{FeatureLike, OPFeature}
+import com.salesforce.op.features.{FeatureBase, FeatureLike, OPFeature}
 import com.salesforce.op.readers.DataFrameFieldNames._
 import com.salesforce.op.stages.{OPStage, OpPipelineStage, OpTransformer}
 import com.salesforce.op.utils.spark.RichDataset._
@@ -134,7 +134,7 @@ class OpWorkflowModel(val uid: String = UID[OpWorkflowModel], val trainingParams
    * @return Updated instance of feature
    */
   def getUpdatedFeatures(features: Array[OPFeature]): Array[OPFeature] = {
-    val allFeatures = rawFeatures ++ blacklistedFeatures ++ stages.map(_.getOutput())
+    val allFeatures = rawFeatures ++ blacklistedFeatures ++ stages.map(_.getOutput().asInstanceOf[FeatureBase])
     features.map{f => allFeatures.find(_.sameOrigin(f))
       .getOrElse(throw new IllegalArgumentException(s"feature $f is not a part of this workflow"))
     }

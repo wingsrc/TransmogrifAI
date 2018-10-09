@@ -32,7 +32,7 @@ package com.salesforce.op.features
 
 import com.salesforce.op.UID
 import com.salesforce.op.features.types.FeatureType
-import com.salesforce.op.stages.{OPStage, OpPipelineStage}
+import com.salesforce.op.stages.{OPStage, OpPipelineStage, OpPipelineStageBase, OpPipelineStageEither}
 
 import scala.reflect.runtime.universe.WeakTypeTag
 
@@ -53,7 +53,7 @@ case class Feature[O <: FeatureType] private[op]
 (
   name: String,
   isResponse: Boolean,
-  originStage: OpPipelineStage[O],
+  originStage: OpPipelineStageBase,
   parents: Seq[OPFeature],
   uid: String,
   distributions: Seq[FeatureDistributionLike] = Seq.empty
@@ -62,7 +62,7 @@ case class Feature[O <: FeatureType] private[op]
   def this(
     name: String,
     isResponse: Boolean,
-    originStage: OpPipelineStage[O],
+    originStage: OpPipelineStageBase,
     parents: Seq[OPFeature]
   )(implicit wtt: WeakTypeTag[O]) = this(
     name = name,
@@ -72,6 +72,15 @@ case class Feature[O <: FeatureType] private[op]
     uid = FeatureUID(originStage.uid),
     distributions = Seq.empty
   )(wtt)
+
+  def copy(
+    name: String = this.name, isResponse: Boolean = this.isResponse,
+    originStage: OpPipelineStageBase = this.originStage,
+    parents: Seq[OPFeature] = this.parents, uid: String = this.uid,
+    distributions: Seq[FeatureDistributionLike] = this.distributions
+  ): Feature[O] = Feature[O](name = name, isResponse = isResponse, originStage = originStage, parents = parents,
+    uid = uid, distributions = distributions)
+
 
   /**
    * Takes an array of stages and will try to replace all origin stages of features with
@@ -84,7 +93,7 @@ case class Feature[O <: FeatureType] private[op]
    *         with the stages in the map passed in)
    */
   private[op] final def copyWithNewStages(stages: Array[OPStage]): FeatureLike[O] = {
-    val stagesMap: Map[String, OpPipelineStage[_]] = stages.map(s => s.uid -> s).toMap
+    val stagesMap: Map[String, OpPipelineStageBase] = stages.map(s => s.uid -> s).toMap
 
     def copy[T <: FeatureType](f: FeatureLike[T]): Feature[T] = {
       // try to get replacement stage, if no replacement provided use original
@@ -109,6 +118,68 @@ case class Feature[O <: FeatureType] private[op]
     this.copy(distributions = distributions)
 }
 
+
+case class FeatureEither[O1 <: FeatureType, O2 <: FeatureType] private[op]
+(
+  name: String,
+  isResponse: Boolean,
+  originStage: OpPipelineStageBase,
+  parents: Seq[OPFeature],
+  uid: String,
+  distributions: Seq[FeatureDistributionLike] = Seq.empty
+)(implicit val wtt1: WeakTypeTag[O1], implicit val wtt2: WeakTypeTag[O2]) extends FeatureEitherLike[O1, O2] {
+  override def right: FeatureLike[O2] = new Feature[O2](
+    uid = uid,
+    name = name,
+    originStage = originStage,
+    isResponse = isResponse,
+    parents = parents
+  )(wtt2)
+
+  override def left: FeatureLike[O1] = new Feature[O1](
+    uid = uid,
+    name = name,
+    originStage = originStage,
+    isResponse = isResponse,
+    parents = parents
+  )(wtt1)
+
+  def this(
+    name: String,
+    isResponse: Boolean,
+    originStage: OpPipelineStageBase,
+    parents: Seq[OPFeature]
+  )(implicit wtt1: WeakTypeTag[O1], wtt2: WeakTypeTag[O2]) = this(
+    name = name,
+    isResponse = isResponse,
+    originStage = originStage,
+    parents = parents,
+    uid = FeatureUIDEither(originStage.uid),
+    distributions = Seq.empty
+  )(wtt1, wtt2)
+
+
+  override private[op] def withDistributions(distributions: Seq[FeatureDistributionLike]) =
+    this.copy(distributions = distributions)
+
+  private[op] final def copyWithNewStages(stages: Array[OPStage]): FeatureEitherLike[O1, O2] = {
+    val stagesMap: Map[String, OpPipelineStageBase] = stages.map(s => s.uid -> s).toMap
+
+    def copy[T1 <: FeatureType, T2 <: FeatureType](f: FeatureEitherLike[T1, T2]): FeatureEither[T1, T2] = {
+      // try to get replacement stage, if no replacement provided use original
+      val stage = stagesMap.getOrElse(f.originStage.uid, f.originStage).asInstanceOf[OpPipelineStageEither[T1, T2]]
+      val newParents = f.parents.map(p => copy[T1, T2](p.asInstanceOf[FeatureEitherLike[T1, T2]]))
+      FeatureEither[T1, T2](
+        name = f.name, isResponse = f.isResponse, originStage = stage, parents = newParents, uid = f.uid,
+        distributions = f.distributions
+      )(f.wtt1, f.wtt2)
+    }
+
+    copy(this)
+  }
+
+}
+
 /**
  * Feature UID factory
  */
@@ -125,6 +196,27 @@ case object FeatureUID {
     val (_, stageUidSuffix) = UID.fromString(stageUid)
     val shortTypeName = FeatureType.shortTypeName[T]
     s"${shortTypeName}_$stageUidSuffix"
+  }
+
+}
+
+/**
+ * Feature UID factory Either
+ */
+case object FeatureUIDEither {
+
+  /**
+   * Returns a UID for features that is built of: feature type name + "_" + 12 hex chars of stage uid.
+   *
+   * @tparam T1 feature type T with a type tag
+   * @param stageUid stage uid
+   * @return UID
+   */
+  def apply[T1 <: FeatureType : WeakTypeTag, T2 <: FeatureType : WeakTypeTag](stageUid: String): String = {
+    val (_, stageUidSuffix) = UID.fromString(stageUid)
+    val shortTypeName1 = FeatureType.shortTypeName[T1]
+    val shortTypeName2 = FeatureType.shortTypeName[T2]
+    s"${shortTypeName1}_or_${shortTypeName2}_$stageUidSuffix"
   }
 
 }

@@ -67,7 +67,8 @@ trait RichFeaturesCollection {
      * @return vector feature
      */
     def transmogrify(label: Option[FeatureLike[RealNN]] = None): FeatureLike[OPVector] =
-      Transmogrifier.transmogrify(features = features.toSeq, label = label)(TransmogrifierDefaults).combine()
+      Transmogrifier.transmogrify(features = features.toSeq.map(_.asInstanceOf[FeatureLike[_]]),
+        label = label)(TransmogrifierDefaults).combine()
 
     /**
      * Convert features into a single vector feature using the feature engineering steps most likely to provide
