@@ -32,9 +32,12 @@ package com.salesforce.op.stages
 
 import com.salesforce.op.features._
 import com.salesforce.op.features.types.FeatureType
+import com.salesforce.op.stages.impl.feature.TimePeriod
+import com.salesforce.op.stages.impl.feature.TimePeriod.findValues
 import com.salesforce.op.utils.reflection.ReflectionUtils
 import com.salesforce.op.utils.spark.RichDataType._
 import com.salesforce.op.utils.spark.RichRow._
+import enumeratum.{Enum, EnumEntry}
 import org.apache.spark.ml.param._
 import org.apache.spark.ml.util.{MLWritable, MLWriter}
 import org.apache.spark.ml.{PipelineStage, Transformer}
@@ -45,6 +48,14 @@ import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe.TypeTag
 import scala.util.{Success, Try}
 
+sealed abstract class Direction extends EnumEntry with Serializable
+
+object Direction extends Enum[Direction] {
+  val values: Seq[Direction] = findValues
+  case object Right extends Direction
+  case object Left extends Direction
+
+}
 
 /**
  * TransmogrifAI Base Pipeline Stage allowing to specify arbitrary Input and Output Feature types
@@ -59,6 +70,8 @@ trait OpPipelineStageBase extends OpPipelineStageParams with MLWritable {
 
   type OutputFeatures
 
+
+  def branching: Option[Direction] = None
   /**
    * Short unique name of the operation this stage performs
    *
@@ -101,7 +114,7 @@ trait OpPipelineStageBase extends OpPipelineStageParams with MLWritable {
    *
    * @return an Array of FeatureLike
    */
-  protected implicit def outputAsArray(out: OutputFeatures): Array[OPFeature]
+  protected[op] implicit def outputAsArray(out: OutputFeatures): Array[OPFeature]
 
   /**
    * Check if the stage is serializable

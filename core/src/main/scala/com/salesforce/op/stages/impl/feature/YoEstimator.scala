@@ -29,15 +29,17 @@
  */
 package com.salesforce.op.stages.impl.feature
 
+import com.salesforce.op.stages.Direction.{Right => DRight, Left => DLeft}
 import com.salesforce.op.UID
 import com.salesforce.op.features.types.{Text, _}
+import com.salesforce.op.stages.Direction
 import com.salesforce.op.stages.base.unary.{UnaryEitherEstimator, UnaryEitherModel}
 import com.twitter.algebird.Semigroup
 import com.twitter.algebird.Operators._
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.{DataFrame, Dataset, Encoder}
 
-class YoEstimator(uid: String = UID[YoEstimator]) extends UnaryEitherEstimator[Text, Text, PickList](
+class YoEstimator(uid: String = UID[YoEstimator]) extends UnaryEitherEstimator[Text, Text, Integral](
   operationName = "yo", uid = uid) with CleanTextFun {
   private implicit val textStatsSeqEnc: Encoder[TextStats] = ExpressionEncoder[TextStats]()
 
@@ -49,19 +51,21 @@ class YoEstimator(uid: String = UID[YoEstimator]) extends UnaryEitherEstimator[T
     TextStats(valueCounts)
   }
 
-  override def fitFn(dataset: Dataset[Option[String]]): UnaryEitherModel[Text, Text, PickList] = {
+  override def fitFn(dataset: Dataset[Option[String]]): UnaryEitherModel[Text, Text, Integral] = {
     implicit val testStatsSG: Semigroup[TextStats] = TextStats.semiGroup(100)
     val valueStats: Dataset[TextStats] = dataset.map(t => computeTextStats(t))
     val aggregatedStats: TextStats = valueStats.reduce(_ + _)
     val isCategorical = aggregatedStats.valueCounts.size <= 100
-    new YoModel(uid, operationName, isCategorical)
+    new YoModel(uid, operationName, isCategorical){
+      override def branching: Option[Direction] = if(isCategorical) Option(DRight) else Option(DLeft)
+    }
   }
 }
 
 class YoModel(uid: String, operationName: String, isCategorical: Boolean) extends
-  UnaryEitherModel[Text, Text, PickList](uid = uid, operationName = operationName) {
-  override def transformFn: Either[Text => Text, Text => PickList] = isCategorical match {
-    case true => Right((t: Text) => t.value.toPickList)
+  UnaryEitherModel[Text, Text, Integral](uid = uid, operationName = operationName) {
+  override def transformFn: Either[Text => Text, Text => Integral] = isCategorical match {
+    case true => Right((t: Text) => t.hashCode.toIntegral)
     case false => Left((t: Text) => t)
   }
 }

@@ -1,7 +1,10 @@
 package com.salesforce.op.stages.impl.feature
 
+import com.salesforce.op._
+import com.salesforce.op.dsl.RichTextFeature
 import com.salesforce.op.utils.spark.RichDataset._
 import com.salesforce.op.OpWorkflow
+import com.salesforce.op.features.FeatureLike
 import com.salesforce.op.features.types.{Text, _}
 import com.salesforce.op.test.{TestFeatureBuilder, TestSparkContext}
 import com.salesforce.op.utils.spark.{OpVectorColumnMetadata, OpVectorMetadata}
@@ -33,11 +36,22 @@ class YoEstimatorTest extends FlatSpec with TestSparkContext with AttributeAsser
   ).map(_.toOPVector)
 
   Spec[YoEstimator] should "detect one categorical and one non-categorical text feature" in {
-    val text = new YoEstimator().setInput(f1).getOutput()
+    val output = new YoEstimator().setInput(f1).getOutput()
 
 
-    val transformed = new OpWorkflow().setResultFeatures(text).transform(inputData)
+    val transformed = new OpWorkflow().setResultFeatures(output).transform(inputData)
     transformed.show()
+    val text = output.left
+    val pickList = output.right
+    val v1 = text.tokenize()
+    val v2 = Seq(pickList).transmogrify()
+    val wf = new OpWorkflow().setResultFeatures(v1, v2)
+
+    println(s"Stages are : ${wf.stages.map(f => f.getInputFeatures().map(_.asInstanceOf[FeatureLike[_]].isRight)
+      .toSeq).toSeq}")
+    val transformed2 = wf.transform(inputData)
+    transformed2.show()
+
   }
 
   it should "detect two categorical text features" in {

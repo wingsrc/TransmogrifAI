@@ -113,7 +113,6 @@ trait FeatureBase {
   }
 
 
-
   final override def toString: String = {
     val oid = Option(originStage).map(_.uid).orNull
     val pids = parents.map(_.uid).mkString("[", ",", "]")
@@ -393,8 +392,8 @@ trait FeatureLike[O <: FeatureType] extends FeatureBase {
   def typeName: String = FeatureType.typeName[O](wtt)
 
 
-
-
+  val isRight: Boolean
+  val isLeft: Boolean
 
   /**
    * Construct a raw feature instance from this feature which can be applied on a Dataframe.

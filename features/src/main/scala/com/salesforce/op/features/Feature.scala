@@ -56,7 +56,9 @@ case class Feature[O <: FeatureType] private[op]
   originStage: OpPipelineStageBase,
   parents: Seq[OPFeature],
   uid: String,
-  distributions: Seq[FeatureDistributionLike] = Seq.empty
+  distributions: Seq[FeatureDistributionLike] = Seq.empty,
+  isRight: Boolean = false,
+  isLeft: Boolean = false
 )(implicit val wtt: WeakTypeTag[O]) extends FeatureLike[O] {
 
   def this(
@@ -70,16 +72,19 @@ case class Feature[O <: FeatureType] private[op]
     originStage = originStage,
     parents = parents,
     uid = FeatureUID(originStage.uid),
-    distributions = Seq.empty
+    distributions = Seq.empty,
+    isRight = false,
+    isLeft = false
   )(wtt)
 
   def copy(
     name: String = this.name, isResponse: Boolean = this.isResponse,
     originStage: OpPipelineStageBase = this.originStage,
     parents: Seq[OPFeature] = this.parents, uid: String = this.uid,
-    distributions: Seq[FeatureDistributionLike] = this.distributions
+    distributions: Seq[FeatureDistributionLike] = this.distributions,isRight: Boolean = false,
+    isLeft: Boolean = false
   ): Feature[O] = Feature[O](name = name, isResponse = isResponse, originStage = originStage, parents = parents,
-    uid = uid, distributions = distributions)
+    uid = uid, distributions = distributions, isRight = isRight, isLeft = isLeft)
 
 
   /**
@@ -101,7 +106,7 @@ case class Feature[O <: FeatureType] private[op]
       val newParents = f.parents.map(p => copy[T](p.asInstanceOf[FeatureLike[T]]))
       Feature[T](
         name = f.name, isResponse = f.isResponse, originStage = stage, parents = newParents, uid = f.uid,
-        distributions = f.distributions
+        distributions = f.distributions, isRight = f.isRight, isLeft = f.isLeft
       )(f.wtt)
     }
 
@@ -133,7 +138,9 @@ case class FeatureEither[O1 <: FeatureType, O2 <: FeatureType] private[op]
     name = name,
     originStage = originStage,
     isResponse = isResponse,
-    parents = parents
+    parents = parents,
+    isRight = true,
+    isLeft = false
   )(wtt2)
 
   override def left: FeatureLike[O1] = new Feature[O1](
@@ -141,7 +148,9 @@ case class FeatureEither[O1 <: FeatureType, O2 <: FeatureType] private[op]
     name = name,
     originStage = originStage,
     isResponse = isResponse,
-    parents = parents
+    parents = parents,
+    isLeft = true,
+    isRight = false
   )(wtt1)
 
   def this(

@@ -262,13 +262,15 @@ private[op] case object FitStagesUtil {
     val stages = stagesLayer.map(_._1)
     val (estimators, noFit) = stages.partition(_.isInstanceOf[Estimator[_]])
     val fitEstimators = estimators.map { case e: Estimator[_] =>
-      println(e)
       e.fit(train) match {
         case m: HasTestEval if hasTest =>
           m.evaluateModel(test)
           m.asInstanceOf[OPStage]
-        case m =>
-          m.asInstanceOf[OPStage]
+        case m => {
+          val s = m.asInstanceOf[OPStage]
+          println(s.getInputFeatures().toSeq)
+          s
+        }
       }
     }
     val transformers = noFit ++ fitEstimators
@@ -326,7 +328,7 @@ private[op] case object FitStagesUtil {
 
           val modelSelectorDAG = computeDAG(Array(ms.getOutput()))
             .dropRight(1)
-            .map(_.map{ case (stage, dist) => (stage, dist + afterCVTSDAG.length) })
+            .map(_.map { case (stage, dist) => (stage, dist + afterCVTSDAG.length) })
 
           // Create the DAG without Model Selector. It will be used to compute the final nonCVTS DAG.
           val nonMSDAG: StagesDAG = beforeCVDAG.map(_.filterNot(_._1.isInstanceOf[MS])).filter(_.nonEmpty)
