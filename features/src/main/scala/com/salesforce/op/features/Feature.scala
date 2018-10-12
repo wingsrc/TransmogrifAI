@@ -131,7 +131,9 @@ case class FeatureEither[O1 <: FeatureType, O2 <: FeatureType] private[op]
   originStage: OpPipelineStageBase,
   parents: Seq[OPFeature],
   uid: String,
-  distributions: Seq[FeatureDistributionLike] = Seq.empty
+  distributions: Seq[FeatureDistributionLike] = Seq.empty,
+  isRight: Boolean = false,
+  isLeft: Boolean = false
 )(implicit val wtt1: WeakTypeTag[O1], implicit val wtt2: WeakTypeTag[O2]) extends FeatureEitherLike[O1, O2] {
   override def right: FeatureLike[O2] = new Feature[O2](
     uid = uid,

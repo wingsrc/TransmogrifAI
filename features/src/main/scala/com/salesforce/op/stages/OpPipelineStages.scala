@@ -52,7 +52,9 @@ sealed abstract class Direction extends EnumEntry with Serializable
 
 object Direction extends Enum[Direction] {
   val values: Seq[Direction] = findValues
+
   case object Right extends Direction
+
   case object Left extends Direction
 
 }
@@ -71,7 +73,8 @@ trait OpPipelineStageBase extends OpPipelineStageParams with MLWritable {
   type OutputFeatures
 
 
-  def branching: Option[Direction] = None
+  var branching: Option[Direction] = None
+
   /**
    * Short unique name of the operation this stage performs
    *
@@ -94,13 +97,22 @@ trait OpPipelineStageBase extends OpPipelineStageParams with MLWritable {
   final def setInput(features: InputFeatures): this.type = {
     setInputFeatures(features)
     onSetInput()
+    println(getInputFeatures().map(f => (f.isLeft, f.isRight)).toSeq)
+    val direction = if (getInputFeatures().exists(_.isLeft)) {
+      Option(Direction.Left)
+    } else if (getInputFeatures().exists(_.isRight)) {
+      Option(Direction.Right)
+    } else None
+    this.branching = direction
+    println(s"Updated branching for ${this.stageName} : ${this.branching}")
     this
   }
 
   /**
    * Function to be called on setInput
    */
-  protected def onSetInput(): Unit = {}
+  protected def onSetInput(): Unit = {
+  }
 
   /**
    * Output features that will be created by this stage
@@ -178,6 +190,7 @@ trait OpPipelineStageBase extends OpPipelineStageParams with MLWritable {
   }
 
   final override def write: MLWriter = new OpPipelineStageWriter(this)
+
   /**
    * The name that the output feature and column should have if unset will use the default name
    */
@@ -193,6 +206,7 @@ trait OpPipelineStageBase extends OpPipelineStageParams with MLWritable {
    */
   final def getOutputFeatureName: String =
     get(outputFeatureName).getOrElse(makeOutputName(outputFeatureUid, getTransientFeatures()))
+
   protected[op] def outputFeatureUid: String
 
 }
@@ -208,10 +222,9 @@ trait OpPipelineStageEither[O1 <: FeatureType, O2 <: FeatureType] extends OpPipe
     Array[FeatureEitherLike[O1, O2]](out).map(_.asInstanceOf[OPFeature])
 
 
-
-
   /**
    * Should output feature be a response? Yes, if any of the input features are.
+   *
    * @return true if the the output feature should be a response
    */
   def outputIsResponse: Boolean = getTransientFeatures().exists(_.isResponse)
@@ -244,7 +257,6 @@ trait OpPipelineStage1Either[I <: FeatureType, O1 <: FeatureType, O2 <: FeatureT
   )(tto1, tto2)
 
 
-
 }
 
 /**
@@ -265,6 +277,7 @@ trait OpPipelineStage[O <: FeatureType] extends OpPipelineStageBase {
 
   /**
    * Should output feature be a response? Yes, if any of the input features are.
+   *
    * @return true if the the output feature should be a response
    */
   def outputIsResponse: Boolean = getTransientFeatures().exists(_.isResponse)
@@ -305,7 +318,9 @@ trait OpPipelineStage1[I <: FeatureType, O <: FeatureType] extends OpPipelineSta
     name = getOutputFeatureName,
     originStage = this,
     isResponse = outputIsResponse,
-    parents = getInputFeatures()
+    parents = getInputFeatures(),
+    isRight = branching.map(_ == Direction.Right).getOrElse(false),
+    isLeft = branching.map(_ == Direction.Left).getOrElse(false)
   )(tto)
 
 }
@@ -404,7 +419,9 @@ trait OpPipelineStage2[I1 <: FeatureType, I2 <: FeatureType, O <: FeatureType]
     name = getOutputFeatureName,
     originStage = this,
     isResponse = outputIsResponse,
-    parents = getInputFeatures()
+    parents = getInputFeatures(),
+    isRight = branching.map(_ == Direction.Right).getOrElse(false),
+    isLeft = branching.map(_ == Direction.Left).getOrElse(false)
   )(tto)
 
 }
@@ -506,7 +523,9 @@ trait OpPipelineStage3[I1 <: FeatureType, I2 <: FeatureType, I3 <: FeatureType, 
     name = getOutputFeatureName,
     originStage = this,
     isResponse = outputIsResponse,
-    parents = getInputFeatures()
+    parents = getInputFeatures(),
+    isRight = branching.map(_ == Direction.Right).getOrElse(false),
+    isLeft = branching.map(_ == Direction.Left).getOrElse(false)
   )(tto)
 }
 
@@ -575,7 +594,9 @@ trait OpPipelineStage4[I1 <: FeatureType, I2 <: FeatureType, I3 <: FeatureType, 
     name = getOutputFeatureName,
     originStage = this,
     isResponse = outputIsResponse,
-    parents = getInputFeatures()
+    parents = getInputFeatures(),
+    isRight = branching.map(_ == Direction.Right).getOrElse(false),
+    isLeft = branching.map(_ == Direction.Left).getOrElse(false)
   )(tto)
 }
 
@@ -604,13 +625,18 @@ trait OpPipelineStageN[I <: FeatureType, O <: FeatureType] extends OpPipelineSta
 
   protected[op] override def outputFeatureUid: String = FeatureUID[O](uid)
 
-  override def getOutput(): FeatureLike[O] = new Feature[O](
-    uid = outputFeatureUid,
-    name = getOutputFeatureName,
-    originStage = this,
-    isResponse = outputIsResponse,
-    parents = getInputFeatures()
-  )(tto)
+  override def getOutput(): FeatureLike[O] = {
+    println(branching.map(_ == Direction.Right))
+    new Feature[O](
+      uid = outputFeatureUid,
+      name = getOutputFeatureName,
+      originStage = this,
+      isResponse = outputIsResponse,
+      parents = getInputFeatures(),
+      isRight = branching.map(_ == Direction.Right).getOrElse(false),
+      isLeft = branching.map(_ == Direction.Left).getOrElse(false)
+    )(tto)
+  }
 }
 
 /**
@@ -618,7 +644,7 @@ trait OpPipelineStageN[I <: FeatureType, O <: FeatureType] extends OpPipelineSta
  *
  * @tparam I1 input single feature type
  * @tparam I2 input sequence feature type
- * @tparam O output feature type
+ * @tparam O  output feature type
  */
 trait OpPipelineStage2N[I1 <: FeatureType, I2 <: FeatureType, O <: FeatureType] extends OpPipelineStage[O]
   with HasIn1PlusN {
@@ -645,7 +671,9 @@ trait OpPipelineStage2N[I1 <: FeatureType, I2 <: FeatureType, O <: FeatureType] 
     name = getOutputFeatureName,
     originStage = this,
     isResponse = outputIsResponse,
-    parents = getInputFeatures()
+    parents = getInputFeatures(),
+    isRight = branching.map(_ == Direction.Right).getOrElse(false),
+    isLeft = branching.map(_ == Direction.Left).getOrElse(false)
   )(tto)
 }
 
@@ -663,18 +691,21 @@ private[op] trait OpTransformer {
 
   /**
    * Creates a transform function to transform Row to a value
+   *
    * @return a transform function to transform Row to a value
    */
   def transformRow: Row => Any = r => transformKeyValue(r.getAny)
 
   /**
    * Creates a transform function to transform Map to a value
+   *
    * @return a transform function to transform Map to a value
    */
   def transformMap: Map[String, Any] => Any = m => transformKeyValue(m.apply)
 
   /**
    * Creates a transform function to transform any key/value to a value
+   *
    * @return a transform function to transform any key/value to a value
    */
   def transformKeyValue: KeyValue => Any
@@ -691,18 +722,21 @@ private[op] trait OpTransformerEither {
 
   /**
    * Creates a transform function to transform Row to a value
+   *
    * @return a transform function to transform Row to a value
    */
   def transformRow: Row => Any = r => transformKeyValue(r.getAny)
 
   /**
    * Creates a transform function to transform Map to a value
+   *
    * @return a transform function to transform Map to a value
    */
   def transformMap: Map[String, Any] => Any = m => transformKeyValue(m.apply)
 
   /**
    * Creates a transform function to transform any key/value to a value
+   *
    * @return a transform function to transform any key/value to a value
    */
   def transformKeyValue: KeyValue => Any

@@ -33,13 +33,14 @@ package com.salesforce.op.utils.stages
 import com.salesforce.op.features.OPFeature
 import com.salesforce.op.stages.impl.selector.ModelSelectorNames.{EstimatorType, ModelType}
 import com.salesforce.op.stages.impl.selector.{HasTestEval, ModelSelector, ModelSelectorNames}
-import com.salesforce.op.stages.{OPStage, OpTransformer}
+import com.salesforce.op.stages.{Direction, OPStage, OpTransformer}
 import com.salesforce.op.{OpWorkflow, OpWorkflowModel}
 import org.apache.spark.ml.{Estimator, Model, Transformer}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
 import org.slf4j.LoggerFactory
 
+import scala.Option
 import scala.collection.mutable.ListBuffer
 
 /**
@@ -146,6 +147,7 @@ private[op] case object FitStagesUtil {
     // A holder for the last persisted rdd
     var lastPersisted: Option[RDD[_]] = None
 
+    println(s"Transformers : ${transformers.map(_.asInstanceOf[OPStage].branching).toSeq}")
     // Apply all the transformers one by one as [[org.apache.spark.ml.Pipeline]] does
     val transformedData: DataFrame =
       transformers.zipWithIndex.foldLeft(data) { case (df, (stage, i)) =>
@@ -221,16 +223,25 @@ private[op] case object FitStagesUtil {
   )(implicit spark: SparkSession): FittedDAG = {
     val alreadyFitted: ListBuffer[OPStage] = ListBuffer(fittedTransformers: _*)
 
+
     val (newTrain, newTest) =
       dag.foldLeft(train -> test) { case ((currTrain, currTest), stagesLayer) =>
         val index = stagesLayer.head._2
+
+        println(s"Already Fitted : ${alreadyFitted.toSeq} with branching : ${alreadyFitted.map(_.branching)}")
+        val rightOrLeft = alreadyFitted.map(_.branching).find(_.isDefined) match {
+          case Some(s) => s
+          case None => None
+        }
+        println(s"RightOrLeft $rightOrLeft")
         val FittedDAG(newTrain, newTest, justFitted) = fitAndTransformLayer(
           stagesLayer = stagesLayer,
           train = currTrain,
           test = currTest,
           hasTest = hasTest,
           transformData = indexOfLastEstimator.exists(_ < index), // only need to update for fit before last estimator
-          persistEveryKStages = persistEveryKStages
+          persistEveryKStages = persistEveryKStages,
+          direction = rightOrLeft
         )
         alreadyFitted ++= justFitted
         newTrain -> newTest
@@ -257,22 +268,27 @@ private[op] case object FitStagesUtil {
     test: Dataset[Row],
     hasTest: Boolean,
     transformData: Boolean,
-    persistEveryKStages: Int
+    persistEveryKStages: Int,
+    direction: Option[Direction] = None
   )(implicit spark: SparkSession): FittedDAG = {
+
     val stages = stagesLayer.map(_._1)
-    val (estimators, noFit) = stages.partition(_.isInstanceOf[Estimator[_]])
+    val filtered = stages.filter { case s: OPStage =>
+      (s.branching == direction) || !s.branching.isDefined
+    }
+    val (estimators, noFit) = filtered.partition(_.isInstanceOf[Estimator[_]])
+
+    println(s"Branching ${filtered.toSeq.map(_.branching)}")
     val fitEstimators = estimators.map { case e: Estimator[_] =>
       e.fit(train) match {
         case m: HasTestEval if hasTest =>
           m.evaluateModel(test)
           m.asInstanceOf[OPStage]
-        case m => {
-          val s = m.asInstanceOf[OPStage]
-          println(s.getInputFeatures().toSeq)
-          s
-        }
+        case m =>
+          m.asInstanceOf[OPStage]
       }
     }
+    println(s"Fitted Estimator : ${fitEstimators.toSeq.map(_.branching)}")
     val transformers = noFit ++ fitEstimators
 
     val opTransformers = transformers.collect { case s: OPStage with OpTransformer => s }

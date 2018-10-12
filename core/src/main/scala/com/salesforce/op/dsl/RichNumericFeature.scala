@@ -635,9 +635,11 @@ trait RichNumericFeature {
       label: Option[FeatureLike[RealNN]] = None
     ): FeatureLike[OPVector] = {
       val features = f +: others
+      println(s"Features : ${features.map(f => (f.name, f.isLeft, f.isRight)).toSeq}")
       val stage = new IntegralVectorizer[T]().setInput(features).setTrackNulls(trackNulls)
       if (fillWithMode) stage.setFillWithMode else stage.setFillWithConstant(fillValue)
       val filledValues = stage.getOutput()
+      println(s"filledValues : ${(filledValues.isLeft, filledValues.isRight)}")
       label match {
         case None =>
           filledValues

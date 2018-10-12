@@ -251,7 +251,6 @@ class OpWorkflow(val uid: String = UID[OpWorkflow]) extends OpWorkflowCore {
    */
   private[op] def transform(in: DataFrame, persistEveryKStages: Int = OpWorkflowModel.PersistEveryKStages)
     (implicit sc: SparkSession): DataFrame = {
-    println(stages.toSeq)
     val transformers = fitStages(in, stages, persistEveryKStages).map(_.asInstanceOf[Transformer])
     FitStagesUtil.applySparkTransformations(in, transformers, persistEveryKStages)
   }
@@ -367,6 +366,9 @@ class OpWorkflow(val uid: String = UID[OpWorkflow]) extends OpWorkflowCore {
   protected def fitStages(data: DataFrame, stagesToFit: Array[OPStage], persistEveryKStages: Int)
     (implicit spark: SparkSession): Array[OPStage] = {
 
+    println(s"stages to fit : ${stagesToFit.toSeq}")
+    println(s" Computing DAG : ${FitStagesUtil.computeDAG(resultFeatures).toSeq.map(_.toSeq)}")
+    println(s"Result features : ${resultFeatures.toSeq}")
     // TODO may want to make workflow take an optional reserve fraction
     val splitters = stagesToFit.collect { case s: ModelSelector[_, _] => s.splitter }.flatten
     val splitter = splitters.reduceOption { (a, b) =>
@@ -385,6 +387,7 @@ class OpWorkflow(val uid: String = UID[OpWorkflow]) extends OpWorkflowCore {
 
     // doing regular workflow fit without workflow level CV
     if (!isWorkflowCV) {
+      val transformers =
       FitStagesUtil.fitAndTransformDAG(
         dag = dag,
         train = train,
@@ -393,6 +396,8 @@ class OpWorkflow(val uid: String = UID[OpWorkflow]) extends OpWorkflowCore {
         indexOfLastEstimator = indexOfLastEstimator,
         persistEveryKStages = persistEveryKStages
       ).transformers
+      println(s"Yo yo yo : ${transformers.toSeq}")
+      transformers
     } else {
       // doing workflow level CV/TS
       // Extract Model Selector and Split the DAG into

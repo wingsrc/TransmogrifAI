@@ -38,17 +38,16 @@ class YoEstimatorTest extends FlatSpec with TestSparkContext with AttributeAsser
   Spec[YoEstimator] should "detect one categorical and one non-categorical text feature" in {
     val output = new YoEstimator().setInput(f1).getOutput()
 
-
-    val transformed = new OpWorkflow().setResultFeatures(output).transform(inputData)
-    transformed.show()
     val text = output.left
     val pickList = output.right
     val v1 = text.tokenize()
     val v2 = Seq(pickList).transmogrify()
+    println(pickList.isRight)
+
     val wf = new OpWorkflow().setResultFeatures(v1, v2)
 
-    println(s"Stages are : ${wf.stages.map(f => f.getInputFeatures().map(_.asInstanceOf[FeatureLike[_]].isRight)
-      .toSeq).toSeq}")
+    println(s"Stages are : ${wf.stages.map(f => (f.stageName, f.branching))
+      .toSeq}")
     val transformed2 = wf.transform(inputData)
     transformed2.show()
 

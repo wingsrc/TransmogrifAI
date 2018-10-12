@@ -56,9 +56,12 @@ class YoEstimator(uid: String = UID[YoEstimator]) extends UnaryEitherEstimator[T
     val valueStats: Dataset[TextStats] = dataset.map(t => computeTextStats(t))
     val aggregatedStats: TextStats = valueStats.reduce(_ + _)
     val isCategorical = aggregatedStats.valueCounts.size <= 100
-    new YoModel(uid, operationName, isCategorical){
-      override def branching: Option[Direction] = if(isCategorical) Option(DRight) else Option(DLeft)
-    }
+    val model = new YoModel(uid, operationName, isCategorical)
+    model.branching = if (isCategorical) Option(DRight) else Option(DLeft)
+    branching = model.branching
+    println(s"M : ${model.branching}")
+    println(s"E : ${branching}")
+    model
   }
 }
 

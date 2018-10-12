@@ -97,12 +97,15 @@ abstract class UnaryEitherEstimator[I <: FeatureType, O1 <: FeatureType, O2 <: F
     val df = dataset.select(in1.name)
     val ds = df.map(r => iConvert.fromSpark(r.get(0)).value)
     val model = fitFn(ds)
+    val branching = model.branching
 
     model
       .setParent(this)
       .setInput(in1.asFeatureLike[I])
       .setMetadata(getMetadata())
       .setOutputFeatureName(getOutputFeatureName)
+    model.branching = branching
+    model
   }
 
 }
