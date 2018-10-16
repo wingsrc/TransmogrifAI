@@ -43,9 +43,11 @@ import com.salesforce.op.stages.impl.selector.ValidationType._
 import com.salesforce.op.stages.impl.selector.{ModelEvaluation, ProblemType, SelectedModel, ValidationType}
 import com.salesforce.op.stages.impl.tuning.{DataCutter, DataSplitter, SplitterSummary}
 import com.salesforce.op.test.PassengerSparkFixtureTest
+import com.salesforce.op.utils.kryo.OpKryoRegistrator
 import com.salesforce.op.utils.spark.{OpVectorColumnMetadata, OpVectorMetadata}
 import org.apache.spark.ml.param.ParamMap
 import org.apache.spark.ml.tuning.ParamGridBuilder
+import org.apache.spark.serializer.KryoRegistrator
 import org.junit.runner.RunWith
 import org.scalactic.Equality
 import org.scalatest.FlatSpec
@@ -55,6 +57,8 @@ import scala.util.{Failure, Success}
 
 @RunWith(classOf[JUnitRunner])
 class ModelInsightsTest extends OpCoreTest with PassengerSparkFixtureTest {
+
+  override def kryoRegistrator: Class[_ <: KryoRegistrator] = classOf[OpKryoRegistrator]
 
   implicit val doubleEquality = new Equality[Double] {
     def areEqual(a: Double, b: Any): Boolean = b match {

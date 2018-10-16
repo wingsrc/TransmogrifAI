@@ -39,7 +39,7 @@ import org.apache.spark.serializer.KryoRegistrator
 import org.scalatest.FlatSpec
 
 class OpReadersTest extends FlatSpec with TestSparkContext {
-  def kryoRegistrator: Class[_ <: KryoRegistrator] = classOf[Registrator]
+  override def kryoRegistrator: Class[_ <: KryoRegistrator] = classOf[Registrator]
 }
 
 private final class Registrator extends OpKryoRegistratorBase {

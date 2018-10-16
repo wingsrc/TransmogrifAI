@@ -36,9 +36,11 @@ import com.salesforce.op.features.{OPFeature, TransientFeature}
 import com.salesforce.op.readers.DataFrameFieldNames
 import com.salesforce.op.stages.impl.feature.HashAlgorithm
 import com.salesforce.op.test.{Passenger, PassengerSparkFixtureTest}
+import com.salesforce.op.utils.kryo.OpKryoRegistrator
 import com.salesforce.op.utils.spark.RichDataset._
 import com.twitter.algebird.Operators._
 import org.apache.spark.mllib.feature.HashingTF
+import org.apache.spark.serializer.KryoRegistrator
 import org.apache.spark.sql.DataFrame
 import org.junit.runner.RunWith
 import org.scalatest.FlatSpec

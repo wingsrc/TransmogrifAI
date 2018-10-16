@@ -36,9 +36,11 @@ import com.salesforce.op.features.{FeatureBuilder, OPFeature, TransientFeature}
 import com.salesforce.op.stages.impl.feature.TimePeriod
 import com.salesforce.op.stages.impl.preparators.CorrelationType
 import com.salesforce.op.test.{Passenger, PassengerSparkFixtureTest}
+import com.salesforce.op.utils.kryo.OpKryoRegistrator
 import com.twitter.algebird.Operators._
 import com.twitter.algebird.Tuple2Semigroup
 import org.apache.spark.mllib.stat.Statistics
+import org.apache.spark.serializer.KryoRegistrator
 import org.apache.spark.sql.DataFrame
 import org.junit.runner.RunWith
 import org.scalatest.FlatSpec
@@ -47,6 +49,12 @@ import com.salesforce.op.filters.Summary._
 
 @RunWith(classOf[JUnitRunner])
 class PreparedFeaturesTest extends OpCoreTest with PassengerSparkFixtureTest {
+
+  conf.registerKryoClasses(Array(
+    Class.forName("com.salesforce.op.filters.PreparedFeaturesTest$$" +
+      "anonfun$5$$anonfun$apply$mcV$sp$2$$anonfun$14$$anonfun$apply$3")))
+
+  override def kryoRegistrator: Class[_ <: KryoRegistrator] = classOf[OpKryoRegistrator]
 
   conf.registerKryoClasses(Array(
     Class.forName("com.salesforce.op.filters.PreparedFeaturesTest$$" +
