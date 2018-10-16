@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.salesforce.op.stages
+package com.salesforce.op
+package stages
 
 import com.salesforce.op.features.types._
 import com.salesforce.op.features.{OPFeature, TransientFeature}
@@ -44,8 +45,8 @@ import scala.reflect.runtime.universe.TypeTag
 
 
 @RunWith(classOf[JUnitRunner])
-class OpPipelineStagesTest
-  extends FlatSpec with PassengerSparkFixtureTest with BeforeAndAfterEach with Serializable {
+class OpPipelineStagesTest extends OpCoreTest
+  with PassengerSparkFixtureTest with BeforeAndAfterEach with Serializable {
 
   val tfParam = new TransientFeatureArrayParam(name = "foo", parent = "null", doc = "nothing")
 

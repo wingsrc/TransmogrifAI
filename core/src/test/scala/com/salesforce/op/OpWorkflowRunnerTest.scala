@@ -53,7 +53,7 @@ import scala.reflect.ClassTag
 
 
 @RunWith(classOf[JUnitRunner])
-class OpWorkflowRunnerTest extends AsyncFlatSpec with PassengerSparkFixtureTest with TestSparkStreamingContext {
+class OpWorkflowRunnerTest extends AsyncOpCoreTest with PassengerSparkFixtureTest with TestSparkStreamingContext {
 
   val log = LoggerFactory.getLogger(this.getClass)
 

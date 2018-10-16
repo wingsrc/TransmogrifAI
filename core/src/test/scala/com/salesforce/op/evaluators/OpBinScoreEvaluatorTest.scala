@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.salesforce.op.evaluators
+package com.salesforce.op
+package evaluators
 
 import com.salesforce.op.features.types.Prediction
 import com.salesforce.op.features.types._
@@ -38,7 +39,7 @@ import org.scalatest.FlatSpec
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class OpBinScoreEvaluatorTest extends FlatSpec with TestSparkContext {
+class OpBinScoreEvaluatorTest extends OpCoreTest {
 
   val (dataset, prediction, label) = TestFeatureBuilder(
     Seq (

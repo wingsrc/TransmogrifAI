@@ -28,25 +28,18 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.salesforce.op.readers
+package com.salesforce.op
 
-import org.joda.time.Duration
-
-import com.esotericsoftware.kryo.Kryo
-import com.salesforce.op.test.{SparkExample, TestSparkContext}
-import com.salesforce.op.utils.kryo.OpKryoRegistratorBase
+import com.salesforce.op.test.TestSparkContext
+import com.salesforce.op.utils.kryo.OpKryoRegistrator
 import org.apache.spark.serializer.KryoRegistrator
-import org.scalatest.FlatSpec
+import org.scalatest.{AsyncFlatSpec, FlatSpec}
 
-class OpReadersTest extends FlatSpec with TestSparkContext {
-  def kryoRegistrator: Class[_ <: KryoRegistrator] = classOf[Registrator]
+trait OpCoreTest extends FlatSpec with TestSparkContext {
+  override def kryoRegistrator: Class[_ <: KryoRegistrator] = classOf[OpKryoRegistrator]
 }
 
-private final class Registrator extends OpKryoRegistratorBase {
-  override def registerCustomClasses(kryo: Kryo): Unit =
-    doClassRegistration(kryo)({
-      Seq(
-        classOf[PassengerCaseClass],
-        classOf[SparkExample])
-    }: _*)
+trait AsyncOpCoreTest extends AsyncFlatSpec with TestSparkContext {
+  override def kryoRegistrator: Class[_ <: KryoRegistrator] = classOf[OpKryoRegistrator]
 }
+

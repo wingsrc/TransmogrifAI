@@ -74,10 +74,12 @@ class OpKryoRegistratorBase extends KryoRegistrator {
       Seq(classOf[Class[_]],
         classOf[GenericData],
         classOf[GenericRecord],
+        classOf[Object],
         classOf[java.math.BigDecimal],
         classOf[java.math.BigInteger],
         classOf[java.util.HashMap[_, _]],
         classOf[scala.collection.Seq[_]],
+        classOf[scala.collection.immutable.Map[_, _]],
         classOf[scala.math.BigDecimal],
         classOf[scala.math.BigInt],
         scala.collection.immutable.Map.empty[Any, Any].getClass,
@@ -92,7 +94,12 @@ class OpKryoRegistratorBase extends KryoRegistrator {
     // Avro generic-data array deserialization fails - hence providing workaround
     kryo.register(
       classOf[GenericData.Array[_]], new GenericJavaCollectionSerializer(classOf[java.util.ArrayList[_]]))
+
+    // A bunch of anonymous classes
     kryo.register(Class.forName("breeze.linalg.DenseVector$mcD$sp"))
+    kryo.register(Class.forName("scala.collection.immutable.MapLike$$anon$2"))
+    kryo.register(Class.forName("scala.collection.immutable.MapLike$ImmutableDefaultKeySet"))
+    kryo.register(Class.forName("scala.math.Ordering$$anon$4"))
     kryo.register(Class.forName("scala.reflect.ClassTag$$anon$1"))
 
     new AlgebirdRegistrar().apply(kryo)
@@ -112,9 +119,6 @@ class OpKryoRegistratorBase extends KryoRegistrator {
 }
 
 private[op] case object OpKryoClasses {
-
-  lazy val Sets: Seq[Class[_]] = Seq(
-    Class.forName("scala.collection.immutable.Set$EmptySet$"))
 
   lazy val ArraysOfPrimitives: Seq[Class[_]] = Seq(
     Class.forName("[Z") /* boolean[] */,
@@ -142,16 +146,36 @@ private[op] case object OpKryoClasses {
   lazy val SparkClasses: Seq[Class[_]] = Seq(
     classOf[org.apache.spark.internal.io.FileCommitProtocol.TaskCommitMessage],
     classOf[org.apache.spark.ml.linalg.Vector],
+    classOf[org.apache.spark.ml.tree.Split],
     classOf[org.apache.spark.mllib.linalg.Vector],
     classOf[org.apache.spark.mllib.stat.MultivariateOnlineSummarizer],
+    classOf[org.apache.spark.sql.Row],
     classOf[org.apache.spark.sql.catalyst.InternalRow],
+    classOf[org.apache.spark.sql.catalyst.expressions.BoundReference],
+    classOf[org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema],
+    classOf[org.apache.spark.sql.catalyst.expressions.SortOrder],
     classOf[org.apache.spark.sql.catalyst.expressions.UnsafeRow],
+    classOf[org.apache.spark.sql.catalyst.expressions.codegen.LazilyGeneratedOrdering],
+    classOf[org.apache.spark.sql.catalyst.trees.Origin],
     classOf[org.apache.spark.sql.execution.datasources.BasicWriteTaskStats],
     classOf[org.apache.spark.sql.execution.datasources.ExecutedWriteSummary],
+    classOf[org.apache.spark.sql.types.ArrayType],
     classOf[org.apache.spark.sql.types.DataType],
+    classOf[org.apache.spark.sql.types.Metadata],
+    classOf[org.apache.spark.sql.types.StructField],
+    classOf[org.apache.spark.sql.types.StructType],
     Class.forName("com.databricks.spark.avro.DefaultSource$SerializableConfiguration"),
     Class.forName("org.apache.spark.sql.execution.datasources.FileFormatWriter$WriteTaskResult"),
-    org.apache.spark.sql.types.ArrayType.getClass,
+    Class.forName("org.apache.spark.ml.classification.MultiClassSummarizer"),
+    Class.forName("org.apache.spark.ml.feature.LabeledPoint"),
+    Class.forName("org.apache.spark.ml.linalg.MatrixUDT"),
+    Class.forName("org.apache.spark.ml.linalg.VectorUDT"),
+    Class.forName("org.apache.spark.ml.optim.WeightedLeastSquares$Aggregator"),
+    Class.forName("org.apache.spark.mllib.evaluation.binary.BinaryLabelCounter"),
+    org.apache.spark.sql.catalyst.expressions.Ascending.getClass,
+    org.apache.spark.sql.catalyst.expressions.Descending.getClass,
+    org.apache.spark.sql.catalyst.expressions.NullsFirst.getClass,
+    org.apache.spark.sql.catalyst.expressions.NullsLast.getClass,
     org.apache.spark.sql.types.BinaryType.getClass,
     org.apache.spark.sql.types.BooleanType.getClass,
     org.apache.spark.sql.types.ByteType.getClass,
@@ -166,8 +190,6 @@ private[op] case object OpKryoClasses {
     org.apache.spark.sql.types.ObjectType.getClass,
     org.apache.spark.sql.types.ShortType.getClass,
     org.apache.spark.sql.types.StringType.getClass,
-    org.apache.spark.sql.types.StructField.getClass,
-    org.apache.spark.sql.types.StructType.getClass,
     org.apache.spark.sql.types.TimestampType.getClass,
     org.apache.spark.sql.types.VarcharType.getClass)
 }

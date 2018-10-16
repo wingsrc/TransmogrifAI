@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.salesforce.op.filters
+package com.salesforce.op
+package filters
 
 import com.salesforce.op.features.types._
 import com.salesforce.op.features.{FeatureBuilder, OPFeature, TransientFeature}
@@ -45,7 +46,11 @@ import org.scalatest.junit.JUnitRunner
 import com.salesforce.op.filters.Summary._
 
 @RunWith(classOf[JUnitRunner])
-class PreparedFeaturesTest extends FlatSpec with PassengerSparkFixtureTest {
+class PreparedFeaturesTest extends OpCoreTest with PassengerSparkFixtureTest {
+
+  conf.registerKryoClasses(Array(
+    Class.forName("com.salesforce.op.filters.PreparedFeaturesTest$$" +
+      "anonfun$5$$anonfun$apply$mcV$sp$2$$anonfun$14$$anonfun$apply$3")))
 
   val responseKey1: FeatureKey = "Response1" -> None
   val responseKey2: FeatureKey = "Response2" -> None

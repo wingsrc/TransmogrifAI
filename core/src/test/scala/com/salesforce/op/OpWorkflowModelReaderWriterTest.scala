@@ -51,8 +51,10 @@ import org.slf4j.LoggerFactory
 
 
 @RunWith(classOf[JUnitRunner])
-class OpWorkflowModelReaderWriterTest
-  extends FlatSpec with UIDReset with PassengerSparkFixtureTest with BeforeAndAfterEach {
+class OpWorkflowModelReaderWriterTest extends OpCoreTest
+  with UIDReset
+  with PassengerSparkFixtureTest
+  with BeforeAndAfterEach {
 
   implicit val jsonFormats: Formats = DefaultFormats
   val log = LoggerFactory.getLogger(this.getClass)

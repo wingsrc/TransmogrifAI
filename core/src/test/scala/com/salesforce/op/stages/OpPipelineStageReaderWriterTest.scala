@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.salesforce.op.stages
+package com.salesforce.op
+package stages
 
 import com.salesforce.op.features._
 import com.salesforce.op.features.types._
@@ -46,8 +47,7 @@ import org.slf4j.LoggerFactory
 
 
 // TODO: consider adding a read/write test for a spark wrapped stage as well
-private[stages] abstract class OpPipelineStageReaderWriterTest
-  extends FlatSpec with PassengerSparkFixtureTest {
+private[stages] abstract class OpPipelineStageReaderWriterTest extends OpCoreTest with PassengerSparkFixtureTest {
 
   val meta = new MetadataBuilder().putString("foo", "bar").build()
 

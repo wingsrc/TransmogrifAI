@@ -54,7 +54,7 @@ import org.scalatest.junit.JUnitRunner
 import scala.util.{Failure, Success}
 
 @RunWith(classOf[JUnitRunner])
-class ModelInsightsTest extends FlatSpec with PassengerSparkFixtureTest {
+class ModelInsightsTest extends OpCoreTest with PassengerSparkFixtureTest {
 
   implicit val doubleEquality = new Equality[Double] {
     def areEqual(a: Double, b: Any): Boolean = b match {

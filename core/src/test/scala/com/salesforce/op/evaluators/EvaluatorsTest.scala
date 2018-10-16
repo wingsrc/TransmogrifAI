@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.salesforce.op.evaluators
+package com.salesforce.op
+package evaluators
 
 import com.salesforce.op.features.types._
 import com.salesforce.op.stages.impl.classification.OpLogisticRegression
@@ -41,7 +42,7 @@ import org.scalatest.FlatSpec
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class EvaluatorsTest extends FlatSpec with TestSparkContext {
+class EvaluatorsTest extends OpCoreTest {
 
   val (ds, rawLabel, features) = TestFeatureBuilder[RealNN, OPVector](
     Seq(

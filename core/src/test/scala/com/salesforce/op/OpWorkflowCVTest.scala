@@ -56,7 +56,7 @@ import org.scalatest.junit.JUnitRunner
 import org.slf4j.LoggerFactory
 
 @RunWith(classOf[JUnitRunner])
-class OpWorkflowCVTest extends FlatSpec with PassengerSparkFixtureTest {
+class OpWorkflowCVTest extends OpCoreTest with PassengerSparkFixtureTest {
 
   val log = LoggerFactory.getLogger(this.getClass)
 

@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.salesforce.op.evaluators
+package com.salesforce.op
+package evaluators
 
 import com.salesforce.op.evaluators.BinaryClassEvalMetrics._
 import com.salesforce.op.features.types._
@@ -49,7 +50,7 @@ import org.scalatest.junit.JUnitRunner
 
 
 @RunWith(classOf[JUnitRunner])
-class OpBinaryClassificationEvaluatorTest extends FlatSpec with TestSparkContext {
+class OpBinaryClassificationEvaluatorTest extends OpCoreTest {
 
   val (ds, rawLabel, features) = TestFeatureBuilder[RealNN, OPVector](
     Seq(

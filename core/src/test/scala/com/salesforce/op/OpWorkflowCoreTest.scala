@@ -38,7 +38,7 @@ import com.salesforce.op.stages.impl.classification.{BinaryClassificationModelSe
 import com.salesforce.op.stages.impl.feature.{OpLDA, OpScalarStandardScaler}
 import com.salesforce.op.stages.impl.preparators.SanityChecker
 import com.salesforce.op.stages.impl.selector.ModelSelector
-import com.salesforce.op.test.{TestFeatureBuilder, TestSparkContext}
+import com.salesforce.op.test.TestFeatureBuilder
 import com.salesforce.op.testkit.{RandomBinary, RandomReal, RandomVector}
 import org.apache.spark.ml.{Estimator, Model}
 import org.junit.runner.RunWith
@@ -47,7 +47,7 @@ import org.scalatest.junit.JUnitRunner
 
 
 @RunWith(classOf[JUnitRunner])
-class OpWorkflowCoreTest extends FlatSpec with TestSparkContext {
+class OpWorkflowCoreTest extends OpCoreTest {
   // Types
   type MS = ModelSelector[_ <: Model[_], _ <: Estimator[_]]
 

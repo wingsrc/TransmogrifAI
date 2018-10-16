@@ -28,7 +28,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.salesforce.op.filters
+package com.salesforce.op
+package filters
 
 import com.salesforce.op.OpParams
 import com.salesforce.op.features.{OPFeature, TransientFeature}
@@ -44,7 +45,8 @@ import org.scalatest.FlatSpec
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class RawFeatureFilterTest extends FlatSpec with PassengerSparkFixtureTest with FiltersTestData {
+class RawFeatureFilterTest extends OpCoreTest with PassengerSparkFixtureTest with FiltersTestData {
+
   Spec[RawFeatureFilter[_]] should "compute feature stats correctly" in {
     val features: Array[OPFeature] =
       Array(survived, age, gender, height, weight, description, boarded, stringMap, numericMap, booleanMap)
