@@ -32,19 +32,18 @@ package com.salesforce.op.readers
 
 import com.salesforce.op.OpParams
 import com.salesforce.op.aggregators.CutOffTime
-import com.salesforce.op.test._
+import com.salesforce.op.test.{Passenger, PassengerSparkFixtureTest}
 import org.apache.spark.SparkException
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Dataset, SparkSession}
 import org.joda.time.Duration
 import org.junit.runner.RunWith
-import org.scalatest.FlatSpec
 import org.scalatest.junit.JUnitRunner
 
 
 
 @RunWith(classOf[JUnitRunner])
-class DataReadersTest extends FlatSpec with PassengerSparkFixtureTest {
+class DataReadersTest extends OpReadersTest with PassengerSparkFixtureTest {
 
   // scalastyle:off
   Spec(DataReaders.getClass) should "define readers" in {

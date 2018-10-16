@@ -32,7 +32,7 @@ package com.salesforce.op.readers
 
 import com.salesforce.op.aggregators.CutOffTime
 import com.salesforce.op.features.types._
-import com.salesforce.op.test._
+import com.salesforce.op.test.{Passenger, PassengerSparkFixtureTest}
 import com.salesforce.op.utils.spark.RichDataset._
 import org.apache.spark.sql.Row
 import org.junit.runner.RunWith
@@ -41,7 +41,7 @@ import org.scalatest.junit.JUnitRunner
 
 
 @RunWith(classOf[JUnitRunner])
-class DataGenerationTest extends FlatSpec with PassengerSparkFixtureTest {
+class DataGenerationTest extends OpReadersTest with PassengerSparkFixtureTest {
 
   private def column(data: Array[Row])(i: Int): Array[Any] = data map (_.get(i))
 

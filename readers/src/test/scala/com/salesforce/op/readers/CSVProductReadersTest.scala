@@ -35,33 +35,15 @@ import org.joda.time.Duration
 import com.salesforce.op.aggregators.CutOffTime
 import com.salesforce.op.features.FeatureBuilder
 import com.salesforce.op.features.types._
-import com.salesforce.op.test.TestSparkContext
 import com.salesforce.op.utils.io.csv.CSVOptions
 import org.apache.spark.sql.Row
 import org.junit.runner.RunWith
-import org.scalatest.FlatSpec
 import org.scalatest.junit.JUnitRunner
 import scala.reflect.runtime.universe._
 
 
-// need this to be external to (not nested in) CSVProductReaderTest for spark sql to work correctly
-case class PassengerCaseClass
-(
-  passengerId: Int,
-  age: Option[Int],
-  gender: Option[String],
-  height: Option[Int],
-  weight: Option[scala.math.BigInt],
-  description: Option[String],
-  boarded: Option[Long],
-  recordDate: Option[Long],
-  survived: Option[Boolean],
-  randomTime: Option[java.sql.Timestamp],
-  randomFloating: Option[Double]
-)
-
 @RunWith(classOf[JUnitRunner])
-class CSVProductReadersTest extends FlatSpec with TestSparkContext {
+class CSVProductReadersTest extends OpReadersTest {
 
   def testDataPath: String = "../test-data"
 

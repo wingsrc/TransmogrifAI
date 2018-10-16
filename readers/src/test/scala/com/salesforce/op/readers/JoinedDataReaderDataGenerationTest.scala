@@ -39,12 +39,11 @@ import org.apache.spark.sql.Row
 import org.joda.time.Duration
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
-import org.scalatest.{FlatSpec, Matchers}
 import org.slf4j.LoggerFactory
 
 
 @RunWith(classOf[JUnitRunner])
-class JoinedDataReaderDataGenerationTest extends FlatSpec with PassengerSparkFixtureTest {
+class JoinedDataReaderDataGenerationTest extends OpReadersTest with PassengerSparkFixtureTest {
 
   val log = LoggerFactory.getLogger(this.getClass)
 
