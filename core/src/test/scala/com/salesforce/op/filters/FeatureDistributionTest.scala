@@ -33,12 +33,16 @@ package com.salesforce.op.filters
 import com.salesforce.op.features.TransientFeature
 import com.salesforce.op.test.PassengerSparkFixtureTest
 import com.salesforce.op.testkit.RandomText
+import com.salesforce.op.utils.kryo.OpKryoRegistrator
 import org.junit.runner.RunWith
+import org.apache.spark.serializer.KryoRegistrator
 import org.scalatest.FlatSpec
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class FeatureDistributionTest extends FlatSpec with PassengerSparkFixtureTest with FiltersTestData {
+
+  override def kryoRegistrator: Class[_ <: KryoRegistrator] = classOf[OpKryoRegistrator]
 
   Spec[FeatureDistribution] should "be correctly created for features" in {
     val features = Array(survived, age, gender, height, weight).map(TransientFeature.apply)

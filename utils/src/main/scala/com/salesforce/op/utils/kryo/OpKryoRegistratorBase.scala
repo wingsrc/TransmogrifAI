@@ -78,6 +78,7 @@ class OpKryoRegistratorBase extends KryoRegistrator {
         classOf[java.math.BigInteger],
         classOf[java.util.HashMap[_, _]],
         classOf[scala.collection.Seq[_]],
+        classOf[scala.collection.immutable.Map[_, _]],
         classOf[scala.math.BigDecimal],
         classOf[scala.math.BigInt],
         scala.collection.immutable.Map.empty[Any, Any].getClass,
@@ -85,15 +86,20 @@ class OpKryoRegistratorBase extends KryoRegistrator {
         classOf[DefaultArraySerializers].getDeclaredClasses() ++
         classOf[DefaultSerializers].getDeclaredClasses() ++
         OpKryoClasses.ArraysOfPrimitives ++
-        OpKryoClasses.WrappedArrays ++
-        OpKryoClasses.SparkClasses
+        OpKryoClasses.WrappedArrays
     }: _*)
+
+    OpKryoClasses.SparkClasses.foreach(kryo.register(_))
 
     // Avro generic-data array deserialization fails - hence providing workaround
     kryo.register(
       classOf[GenericData.Array[_]], new GenericJavaCollectionSerializer(classOf[java.util.ArrayList[_]]))
+
+    // A bunch of anonymous classes
     kryo.register(Class.forName("breeze.linalg.DenseVector$mcD$sp"))
     kryo.register(Class.forName("scala.reflect.ClassTag$$anon$1"))
+    kryo.register(Class.forName("scala.collection.immutable.MapLike$$anon$2"))
+    kryo.register(Class.forName("scala.collection.immutable.MapLike$ImmutableDefaultKeySet"))
 
     new AlgebirdRegistrar().apply(kryo)
 
@@ -112,9 +118,6 @@ class OpKryoRegistratorBase extends KryoRegistrator {
 }
 
 private[op] case object OpKryoClasses {
-
-  lazy val Sets: Seq[Class[_]] = Seq(
-    Class.forName("scala.collection.immutable.Set$EmptySet$"))
 
   lazy val ArraysOfPrimitives: Seq[Class[_]] = Seq(
     Class.forName("[Z") /* boolean[] */,
@@ -141,16 +144,17 @@ private[op] case object OpKryoClasses {
 
   lazy val SparkClasses: Seq[Class[_]] = Seq(
     classOf[org.apache.spark.internal.io.FileCommitProtocol.TaskCommitMessage],
-    classOf[org.apache.spark.ml.linalg.Vector],
-    classOf[org.apache.spark.mllib.linalg.Vector],
+    classOf[Array[org.apache.spark.ml.linalg.Vector]],
+    classOf[Array[org.apache.spark.mllib.linalg.Vector]],
     classOf[org.apache.spark.mllib.stat.MultivariateOnlineSummarizer],
-    classOf[org.apache.spark.sql.catalyst.InternalRow],
+    classOf[Array[org.apache.spark.sql.catalyst.InternalRow]],
     classOf[org.apache.spark.sql.catalyst.expressions.UnsafeRow],
     classOf[org.apache.spark.sql.execution.datasources.BasicWriteTaskStats],
     classOf[org.apache.spark.sql.execution.datasources.ExecutedWriteSummary],
     classOf[org.apache.spark.sql.types.DataType],
     Class.forName("com.databricks.spark.avro.DefaultSource$SerializableConfiguration"),
     Class.forName("org.apache.spark.sql.execution.datasources.FileFormatWriter$WriteTaskResult"),
+    Class.forName("org.apache.spark.ml.optim.WeightedLeastSquares$Aggregator"),
     org.apache.spark.sql.types.ArrayType.getClass,
     org.apache.spark.sql.types.BinaryType.getClass,
     org.apache.spark.sql.types.BooleanType.getClass,

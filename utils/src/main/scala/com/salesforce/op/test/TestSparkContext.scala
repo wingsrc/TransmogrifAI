@@ -27,6 +27,7 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.serializer.KryoRegistrator
 import org.scalatest.Suite
 
 /**
@@ -43,6 +44,8 @@ trait TestSparkContext extends TempDirectoryTest with TestCommon {
 
   final protected val KryoRegistratorKey: String = "spark.kryo.registrator"
 
+  def kryoRegistrator: Class[_ <: KryoRegistrator] = classOf[OpKryoRegistratorBase]
+
   lazy val kryoClasses: Array[Class[_]] = Array(
     classOf[com.salesforce.op.test.Passenger],
     classOf[com.salesforce.op.test.PassengerCSV]
@@ -55,7 +58,7 @@ trait TestSparkContext extends TempDirectoryTest with TestCommon {
       .setAppName(conf.get("spark.app.name", "op-test"))
       .registerKryoClasses(kryoClasses)
       .set("spark.serializer", classOf[org.apache.spark.serializer.KryoSerializer].getName)
-      .set(KryoRegistratorKey, classOf[OpKryoRegistratorBase].getName)
+      .set(KryoRegistratorKey, kryoRegistrator.getCanonicalName)
       .set("spark.ui.enabled", false.toString) // Disables Spark Application UI
       .set("spark.kryo.registrationRequired", "true") // Enable to debug Kryo
     // .set("spark.kryo.unsafe", "true") // This might improve performance

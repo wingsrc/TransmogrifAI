@@ -35,9 +35,11 @@ import com.salesforce.op.features.{OPFeature, TransientFeature}
 import com.salesforce.op.readers.DataFrameFieldNames
 import com.salesforce.op.stages.impl.feature.HashAlgorithm
 import com.salesforce.op.test.{Passenger, PassengerSparkFixtureTest}
+import com.salesforce.op.utils.kryo.OpKryoRegistrator
 import com.salesforce.op.utils.spark.RichDataset._
 import com.twitter.algebird.Operators._
 import org.apache.spark.mllib.feature.HashingTF
+import org.apache.spark.serializer.KryoRegistrator
 import org.apache.spark.sql.DataFrame
 import org.junit.runner.RunWith
 import org.scalatest.FlatSpec
@@ -45,6 +47,9 @@ import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class RawFeatureFilterTest extends FlatSpec with PassengerSparkFixtureTest with FiltersTestData {
+
+  override def kryoRegistrator: Class[_ <: KryoRegistrator] = classOf[OpKryoRegistrator]
+
   Spec[RawFeatureFilter[_]] should "compute feature stats correctly" in {
     val features: Array[OPFeature] =
       Array(survived, age, gender, height, weight, description, boarded, stringMap, numericMap, booleanMap)
