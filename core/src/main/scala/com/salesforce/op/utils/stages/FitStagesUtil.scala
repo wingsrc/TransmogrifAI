@@ -228,12 +228,10 @@ private[op] case object FitStagesUtil {
       dag.foldLeft(train -> test) { case ((currTrain, currTest), stagesLayer) =>
         val index = stagesLayer.head._2
 
-        println(s"Already Fitted : ${alreadyFitted.toSeq} with branching : ${alreadyFitted.map(_.branching)}")
         val rightOrLeft = alreadyFitted.map(_.branching).find(_.isDefined) match {
           case Some(s) => s
           case None => None
         }
-        println(s"RightOrLeft $rightOrLeft")
         val FittedDAG(newTrain, newTest, justFitted) = fitAndTransformLayer(
           stagesLayer = stagesLayer,
           train = currTrain,
@@ -278,7 +276,6 @@ private[op] case object FitStagesUtil {
     }
     val (estimators, noFit) = filtered.partition(_.isInstanceOf[Estimator[_]])
 
-    println(s"Branching ${filtered.toSeq.map(_.branching)}")
     val fitEstimators = estimators.map { case e: Estimator[_] =>
       e.fit(train) match {
         case m: HasTestEval if hasTest =>
@@ -288,7 +285,6 @@ private[op] case object FitStagesUtil {
           m.asInstanceOf[OPStage]
       }
     }
-    println(s"Fitted Estimator : ${fitEstimators.toSeq.map(_.branching)}")
     val transformers = noFit ++ fitEstimators
 
     val opTransformers = transformers.collect { case s: OPStage with OpTransformer => s }
