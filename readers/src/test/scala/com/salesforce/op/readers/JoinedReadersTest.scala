@@ -31,15 +31,14 @@
 package com.salesforce.op.readers
 
 import com.salesforce.op.aggregators.CutOffTime
-import com.salesforce.op.test._
+import com.salesforce.op.test.{Passenger, PassengerSparkFixtureTest, SparkExample}
 import org.joda.time.{DateTimeConstants, Duration}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
-import org.scalatest.{FlatSpec, Matchers}
 
 
 @RunWith(classOf[JUnitRunner])
-class JoinedReadersTest extends FlatSpec with PassengerSparkFixtureTest {
+class JoinedReadersTest extends OpReadersTest with PassengerSparkFixtureTest {
 
   val sparkReader = DataReaders.Aggregate.csv[SparkExample](
     path = Some("../test-data/SparkExample.csv"),

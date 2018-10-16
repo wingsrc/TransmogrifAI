@@ -32,12 +32,10 @@ package com.salesforce.op.readers
 
 import org.apache.hadoop.fs.Path
 import org.junit.runner.RunWith
-import org.scalatest.FlatSpec
 import org.scalatest.junit.JUnitRunner
-import com.salesforce.op.test.TestCommon
 
 @RunWith(classOf[JUnitRunner])
-class StreamingReadersTest extends FlatSpec with TestCommon {
+class StreamingReadersTest extends OpReadersTest {
   val dotPath = new Path(".part.avro")
   val underScorePath = new Path("_part.avro")
   val goodPath = new Path("part.avro")

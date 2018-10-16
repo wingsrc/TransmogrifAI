@@ -30,48 +30,22 @@
 
 package com.salesforce.op.readers
 
-import com.salesforce.op.test.PassengerSparkFixtureTest
-import org.apache.avro.Schema
-import org.apache.avro.generic.GenericRecord
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
+import org.joda.time.Duration
 
-import scala.collection.JavaConverters._
+import com.esotericsoftware.kryo.Kryo
+import com.salesforce.op.test.{SparkExample, TestSparkContext}
+import com.salesforce.op.utils.kryo.OpKryoRegistrator
+import org.scalatest.FlatSpec
 
+class OpReadersTest extends FlatSpec with TestSparkContext {
+  conf.set("spark.kryo.registrator", classOf[Registrator].getCanonicalName)
+}
 
-@RunWith(classOf[JUnitRunner])
-class CSVAutoReadersTest extends OpReadersTest with PassengerSparkFixtureTest {
-
-  private val expectedSchema = new Schema.Parser().parse(resourceFile(name = "PassengerAuto.avsc"))
-  private val allFields = expectedSchema.getFields.asScala.map(_.name())
-  private val keyField: String = allFields.head
-
-  Spec[CSVAutoReader[_]] should "read in data correctly and infer schema" in {
-    val dataReader = DataReaders.Simple.csvAuto[GenericRecord](
-      path = Some(passengerCsvWithHeaderPath),
-      key = _.get(keyField).toString
-    )
-    val data = dataReader.readRDD().collect()
-    data.foreach(_ shouldBe a[GenericRecord])
-    data.length shouldBe 8
-
-    val inferredSchema = data.head.getSchema
-    inferredSchema shouldBe expectedSchema
-  }
-
-  it should "read in data correctly and infer schema based with headers provided" in {
-    val dataReader = DataReaders.Simple.csvAuto[GenericRecord](
-      path = Some(passengerCsvPath),
-      key = _.get(keyField).toString,
-      headers = allFields
-    )
-    val data = dataReader.readRDD().collect()
-    data.foreach(_ shouldBe a[GenericRecord])
-    data.length shouldBe 8
-
-    val inferredSchema = data.head.getSchema
-    inferredSchema shouldBe expectedSchema
-
-  }
-
+private final class Registrator extends OpKryoRegistrator {
+  override def registerCustomClasses(kryo: Kryo): Unit =
+    doClassRegistration(kryo)({
+      Seq(
+        classOf[PassengerCaseClass],
+        classOf[SparkExample])
+    }: _*)
 }

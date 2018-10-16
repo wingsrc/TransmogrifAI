@@ -22,7 +22,7 @@ package com.salesforce.op.test
 
 import java.io.File
 
-import com.salesforce.op.utils.kryo.OpKryoRegistrator
+import com.salesforce.op.utils.kryo.OpKryoRegistratorBase
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.streaming.{Seconds, StreamingContext}
@@ -37,7 +37,11 @@ trait TestSparkContext extends TempDirectoryTest with TestCommon {
   self: Suite =>
 
   // Remove Breeze logging noise
-  Logger.getLogger("breeze.optimize").setLevel(Level.WARN)
+  Logger.getLogger("breeze.optimize").setLevel(Level.DEBUG)
+
+  // loggingLevel(Level.INFO)
+
+  final protected val KryoRegistratorKey: String = "spark.kryo.registrator"
 
   lazy val kryoClasses: Array[Class[_]] = Array(
     classOf[com.salesforce.op.test.Passenger],
@@ -51,9 +55,9 @@ trait TestSparkContext extends TempDirectoryTest with TestCommon {
       .setAppName(conf.get("spark.app.name", "op-test"))
       .registerKryoClasses(kryoClasses)
       .set("spark.serializer", classOf[org.apache.spark.serializer.KryoSerializer].getName)
-      .set("spark.kryo.registrator", classOf[OpKryoRegistrator].getName)
+      .set(KryoRegistratorKey, classOf[OpKryoRegistratorBase].getName)
       .set("spark.ui.enabled", false.toString) // Disables Spark Application UI
-    // .set("spark.kryo.registrationRequired", "true") // Enable to debug Kryo
+      .set("spark.kryo.registrationRequired", "true") // Enable to debug Kryo
     // .set("spark.kryo.unsafe", "true") // This might improve performance
   }
 
