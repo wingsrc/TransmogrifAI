@@ -143,6 +143,7 @@ private[op] class OpCrossValidation[M <: Model[_], E <: Estimator[_]]
 
     // get param that stores the label column
     val labelCol = evaluator.getParam(ValidatorParamDefaults.LabelCol)
+    log.info(s"TEST: HERE HERE, ${dataset.count()}")
     evaluator.set(labelCol, label)
 
     // creating k train/validation data
