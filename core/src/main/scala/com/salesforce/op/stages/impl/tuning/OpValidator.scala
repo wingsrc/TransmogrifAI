@@ -213,6 +213,7 @@ private[op] trait OpValidator[M <: Model[_], E <: Estimator[_]] extends Serializ
     splitter.map {
       case d: DataBalancer => {
         val Array(negative, positive) = datasetsByClass
+        log.info(s"TEST LOG: neg count: ${negative.count()}, pos count: ${positive.count()}")
         d.estimate(
           data = dataset,
           positiveData = positive,
@@ -222,6 +223,7 @@ private[op] trait OpValidator[M <: Model[_], E <: Estimator[_]] extends Serializ
       }
       case c: DataCutter => {
         val labelCounts = dataset.sparkSession.createDataFrame(classes zip datasetsByClass.map(_.count())).persist
+        log.info(s"TEST LOG: label count: ${labelCounts.count()}")
         c.estimate(labelCounts)
         labelCounts.unpersist
       }
