@@ -147,7 +147,8 @@ private[op] class OpCrossValidation[M <: Model[_], E <: Estimator[_]]
     evaluator.set(labelCol, label)
 
     // creating k train/validation data
-    if (stratifyCondition) {
+//    if (stratifyCondition) {
+      log.info(s"TEST: creating k train/validation data, ${dataset.count()}")
       val rddsByClass = prepareStratification(
         dataset = dataset,
         message = s"Creating $numFolds stratified folds",
@@ -155,10 +156,11 @@ private[op] class OpCrossValidation[M <: Model[_], E <: Estimator[_]]
         splitter = splitter
       )
       stratifyKFolds(rddsByClass)
-    } else {
-      val rddRow = dataset.toDF().rdd
-      MLUtils.kFold(rddRow, numFolds, seed)
-    }
+//    } else {
+//      log.info(s"TEST: not creating, ${dataset.count()}")
+//      val rddRow = dataset.toDF().rdd
+//      MLUtils.kFold(rddRow, numFolds, seed)
+//    }
   }
 
 
