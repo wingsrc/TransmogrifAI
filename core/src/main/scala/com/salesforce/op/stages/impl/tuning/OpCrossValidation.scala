@@ -100,7 +100,7 @@ private[op] class OpCrossValidation[M <: Model[_], E <: Estimator[_]]
     val modelSummariesFuts = splitsWithDags.map { case ((trainingRDD, validationRDD), splitIndex, theDAG) =>
       log.info(s"Cross Validation $splitIndex with multiple sets of parameters.")
       Future {
-        suppressLoggingForFun() {
+//        suppressLoggingForFun() {
           val training = spark.createDataFrame(trainingRDD, schema)
           val validation = spark.createDataFrame(validationRDD, schema)
           val (newTrain, newTest) = theDAG.map((d: StagesDAG) =>
@@ -112,7 +112,7 @@ private[op] class OpCrossValidation[M <: Model[_], E <: Estimator[_]]
           ).getOrElse(training -> validation)
           getSummary(modelInfo = modelInfo, label = label, features = features, train = newTrain, test = newTest)
         }
-      }
+//      }
     }
     // Await for all the evaluations to complete
     val modelSummaries = SparkThreadUtils.utils.awaitResult(Future.sequence(modelSummariesFuts.toSeq), Duration.Inf)
