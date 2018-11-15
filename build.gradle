@@ -18,9 +18,9 @@ plugins {
 
 allprojects {
     repositories {
-        maven { url 'https://jitpack.io' }
-        mavenCentral()
+//        mavenCentral()
         jcenter()
+        maven { url "https://jitpack.io" }
     }
 }
 
@@ -128,7 +128,7 @@ configure(allProjs) {
         testCompile "junit:junit:$junitVersion"
         testRuntime "org.pegdown:pegdown:$pegdownVersion"
 
-        implementation 'com.github.salesforce:TransmogrifAI:xl~text-length-SNAPSHOT'
+        implementation 'com.github.wingsrc:TransmogrifAI:xl~text-length-SNAPSHOT'
     }
 
     configurations.all {
