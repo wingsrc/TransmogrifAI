@@ -1,6 +1,7 @@
 buildscript {
     repositories {
         maven { url "https://plugins.gradle.org/m2/" }
+        maven { url "https://jitpack.io" }
         mavenCentral()
     }
     dependencies {
@@ -128,7 +129,7 @@ configure(allProjs) {
         testCompile "junit:junit:$junitVersion"
         testRuntime "org.pegdown:pegdown:$pegdownVersion"
 
-        implementation 'com.github.wingsrc:TransmogrifAI:text-length-new-SNAPSHOT'
+        implementation 'com.github.wingsrc:TransmogrifAI:xl~text-len-feature-SNAPSHOT'
     }
 
     configurations.all {
