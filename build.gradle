@@ -1,7 +1,6 @@
 buildscript {
     repositories {
         maven { url "https://plugins.gradle.org/m2/" }
-        maven { url 'https://jitpack.io' }
         mavenCentral()
     }
     dependencies {
@@ -19,6 +18,7 @@ plugins {
 
 allprojects {
     repositories {
+        maven { url 'https://jitpack.io' }
         mavenCentral()
         jcenter()
     }
@@ -128,7 +128,7 @@ configure(allProjs) {
         testCompile "junit:junit:$junitVersion"
         testRuntime "org.pegdown:pegdown:$pegdownVersion"
 
-        implementation 'com.github.salesforce:TransmogrifAI:xl~test-text-length-SNAPSHOT'
+        implementation 'com.github.salesforce:TransmogrifAI:xl~text-length-SNAPSHOT'
     }
 
     configurations.all {
