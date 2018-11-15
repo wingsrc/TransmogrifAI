@@ -1,6 +1,7 @@
 buildscript {
     repositories {
         maven { url "https://plugins.gradle.org/m2/" }
+        maven { url 'https://jitpack.io' }
         mavenCentral()
     }
     dependencies {
@@ -126,6 +127,8 @@ configure(allProjs) {
         testCompile ("com.holdenkarau:spark-testing-base_$scalaVersion:$sparkTestingBaseVersion") { transitive = false }
         testCompile "junit:junit:$junitVersion"
         testRuntime "org.pegdown:pegdown:$pegdownVersion"
+
+        implementation 'com.github.salesforce:TransmogrifAI:xl~test-text-length-SNAPSHOT'
     }
 
     configurations.all {
