@@ -128,7 +128,7 @@ configure(allProjs) {
         testCompile "junit:junit:$junitVersion"
         testRuntime "org.pegdown:pegdown:$pegdownVersion"
 
-        implementation 'com.github.wingsrc:TransmogrifAI:text-length-SNAPSHOT'
+        implementation 'com.github.wingsrc:TransmogrifAI:text-length-new-SNAPSHOT'
     }
 
     configurations.all {
