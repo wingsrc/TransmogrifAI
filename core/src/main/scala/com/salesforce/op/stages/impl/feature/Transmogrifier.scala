@@ -52,7 +52,7 @@ import scala.reflect.runtime.universe._
 private[op] trait TransmogrifierDefaults {
   val NullString: String = OpVectorColumnMetadata.NullString
   val OtherString: String = OpVectorColumnMetadata.OtherString
-  val DefaultNumOfFeatures: Int = 512
+  val DefaultNumOfFeatures: Int = 513
   val MaxNumOfFeatures: Int = 16384
   val DateListDefault: DateListPivot = DateListPivot.SinceLast
   val ReferenceDate: org.joda.time.DateTime = DateTimeUtils.now()
