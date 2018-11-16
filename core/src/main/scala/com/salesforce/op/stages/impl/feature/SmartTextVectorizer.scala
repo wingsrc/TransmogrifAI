@@ -42,8 +42,6 @@ import com.twitter.algebird.Monoid._
 import com.twitter.algebird.Operators._
 import com.twitter.algebird.Semigroup
 import org.apache.spark.ml.param._
-import com.salesforce.op.features.types._
-import org.apache.spark.mllib.linalg.Vectors
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.{Dataset, Encoder}
 
@@ -217,8 +215,8 @@ final class SmartTextVectorizerModel[T <: Text] private[op]
       val textTokens: Seq[TextList] = rowText.map(tokenize(_).tokens)
       val textVector: OPVector = hash[TextList](textTokens, getTextTransientFeatures, args.hashingParams)
       val textNullIndicatorsVector = if (args.shouldTrackNulls) Seq(getNullIndicatorsVector(textTokens)) else Seq.empty
-      val textLenVector = Vectors.dense(rowText.length).asML.toOPVector
-      VectorsCombiner.combineOP(Seq(categoricalVector, textVector, textLenVector) ++ textNullIndicatorsVector)
+      val textLenVector = Seq(makeSparseVector(Seq((0, row.length.toDouble))).toOPVector)
+      VectorsCombiner.combineOP(Seq(categoricalVector, textVector) ++ textNullIndicatorsVector ++ textLenVector)
     }
   }
 
