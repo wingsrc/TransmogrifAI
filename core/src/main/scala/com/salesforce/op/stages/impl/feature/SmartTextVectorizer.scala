@@ -81,6 +81,7 @@ class SmartTextVectorizer[T <: Text](uid: String = UID[SmartTextVectorizer[T]])(
 
     val maxCard = $(maxCardinality)
     val shouldCleanText = $(cleanText)
+    val textLen = $(includeTextLen)
 
     implicit val testStatsSG: Semigroup[TextStats] = TextStats.semiGroup(maxCard)
     val valueStats: Dataset[Array[TextStats]] = dataset.map(_.map(computeTextStats(_, shouldCleanText)).toArray)
@@ -100,6 +101,7 @@ class SmartTextVectorizer[T <: Text](uid: String = UID[SmartTextVectorizer[T]])(
       topValues = topValues,
       shouldCleanText = shouldCleanText,
       shouldTrackNulls = $(trackNulls),
+      shouldIncludeTextLen = textLen,
       hashingParams = makeHashingParams()
     )
 
@@ -131,12 +133,25 @@ class SmartTextVectorizer[T <: Text](uid: String = UID[SmartTextVectorizer[T]])(
     // build metadata describing output
     val shouldTrackNulls = $(trackNulls)
     val unseen = Option($(unseenName))
+    val includeText = $(includeTextLen)
+    val textLenCol = (if (includeText) {
+      val x = textFeatures.head
+      Array(
+        new OpVectorColumnMetadata(
+          parentFeatureName = Seq(x.name),
+          parentFeatureType = Seq(x.typeName),
+          grouping = None,
+          indicatorValue = Option(OpVectorColumnMetadata.TextLength))
+      )
+    } else Array.empty[OpVectorColumnMetadata])
 
     val categoricalColumns = if (categoricalFeatures.nonEmpty) {
-      makeVectorColumnMetadata(shouldTrackNulls, unseen, smartTextParams.categoricalTopValues, categoricalFeatures)
+      makeVectorColumnMetadata(shouldTrackNulls, includeText, unseen, smartTextParams.categoricalTopValues,
+        categoricalFeatures)
     } else Array.empty[OpVectorColumnMetadata]
     val textColumns = if (textFeatures.nonEmpty) {
-      makeVectorColumnMetadata(textFeatures, makeHashingParams()) ++ textFeatures.map(_.toColumnMetaData(isNull = true))
+      makeVectorColumnMetadata(textFeatures, makeHashingParams()) ++
+        textFeatures.map(_.toColumnMetaData(isNull = true)) ++ textLenCol
     } else Array.empty[OpVectorColumnMetadata]
 
     val columns = categoricalColumns ++ textColumns
@@ -187,6 +202,7 @@ case class SmartTextVectorizerModelArgs
   topValues: Array[Seq[String]],
   shouldCleanText: Boolean,
   shouldTrackNulls: Boolean,
+  shouldIncludeTextLen: Boolean,
   hashingParams: HashingFunctionParams
 ) extends JsonLike {
   def categoricalTopValues: Array[Seq[String]] =
@@ -215,7 +231,9 @@ final class SmartTextVectorizerModel[T <: Text] private[op]
       val textTokens: Seq[TextList] = rowText.map(tokenize(_).tokens)
       val textVector: OPVector = hash[TextList](textTokens, getTextTransientFeatures, args.hashingParams)
       val textNullIndicatorsVector = if (args.shouldTrackNulls) Seq(getNullIndicatorsVector(textTokens)) else Seq.empty
-      val textLenVector = Seq(makeSparseVector(Seq((0, row.length.toDouble))).toOPVector)
+      val textLenVector = if (args.shouldIncludeTextLen) {
+        Seq(makeSparseVector(Seq((0, row.length.toDouble))).toOPVector)
+      } else Seq.empty
       VectorsCombiner.combineOP(Seq(categoricalVector, textVector) ++ textNullIndicatorsVector ++ textLenVector)
     }
   }

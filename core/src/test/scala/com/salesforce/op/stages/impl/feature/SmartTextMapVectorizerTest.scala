@@ -105,13 +105,16 @@ class SmartTextMapVectorizerTest extends FlatSpec with TestSparkContext with Att
 
     val transformed = new OpWorkflow().setResultFeatures(smartMapVectorized, smartVectorized).transform(data)
     val result = transformed.collect(smartMapVectorized, smartVectorized)
+    val mapMeta = OpVectorMetadata(transformed.schema(smartMapVectorized.name))
+    val meta = OpVectorMetadata(transformed.schema(smartVectorized.name))
+    println(s"META DATA: $meta")
+    println(s"META col: ${meta.columns.map(x => x.toMetadata)}")
     val field = transformed.schema(smartVectorized.name)
     assertNominal(field, Array.fill(4)(true) ++ Array.fill(4)(false) :+ true, transformed.collect(smartVectorized))
     val fieldMap = transformed.schema(smartMapVectorized.name)
     assertNominal(fieldMap, Array.fill(4)(true) ++ Array.fill(4)(false) :+ true,
       transformed.collect(smartMapVectorized))
-    val mapMeta = OpVectorMetadata(transformed.schema(smartMapVectorized.name))
-    val meta = OpVectorMetadata(transformed.schema(smartVectorized.name))
+
     mapMeta.history.keys shouldBe Set(m1.name, m2.name)
     mapMeta.columns.length shouldBe meta.columns.length
 

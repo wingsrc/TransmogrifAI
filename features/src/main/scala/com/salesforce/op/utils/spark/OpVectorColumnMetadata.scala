@@ -162,6 +162,7 @@ object OpVectorColumnMetadata {
   val IndicesKey = "indices"
   val NullString = "NullIndicatorValue"
   val OtherString = "OTHER"
+  val TextLength = "TextLength"
 
   /**
    * Alternate constructor for OpVectorColumnMetadata cannot be in class because causes serialization issues

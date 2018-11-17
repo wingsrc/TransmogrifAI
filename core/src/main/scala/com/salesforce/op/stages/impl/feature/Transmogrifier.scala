@@ -64,6 +64,7 @@ private[op] trait TransmogrifierDefaults {
   val PrependFeatureName: Boolean = true
   val HashSpaceStrategy: HashSpaceStrategy = com.salesforce.op.stages.impl.feature.HashSpaceStrategy.Auto
   val CleanText: Boolean = true
+  val TextLen: String = OpVectorColumnMetadata.TextLength
   val CleanKeys: Boolean = false
   val HashAlgorithm: HashAlgorithm = com.salesforce.op.stages.impl.feature.HashAlgorithm.MurMur3
   val BinaryFreq: Boolean = false
@@ -71,6 +72,7 @@ private[op] trait TransmogrifierDefaults {
   val FillWithMean: Boolean = true
   val TrackNulls: Boolean = true
   val TrackInvalid: Boolean = false
+  val IncludeTextLen: Boolean = true // true
   val MinDocFrequency: Int = 0
   // Default is to fill missing Geolocations with the mean, but if fillWithConstant is chosen, use this
   val DefaultGeolocation: Geolocation = Geolocation(0.0, 0.0, GeolocationAccuracy.Unknown)
@@ -521,6 +523,12 @@ trait TextParams extends Params {
   )
   setDefault(cleanText, TransmogrifierDefaults.CleanText)
   def setCleanText(clean: Boolean): this.type = set(cleanText, clean)
+
+  final val includeTextLen = new BooleanParam(
+    parent = this, name = "textLen", doc = "use text length as a feature"
+  )
+  setDefault(includeTextLen, TransmogrifierDefaults.IncludeTextLen)
+  def setIncludeTextLen(include: Boolean): this.type = set(includeTextLen, include)
 }
 
 

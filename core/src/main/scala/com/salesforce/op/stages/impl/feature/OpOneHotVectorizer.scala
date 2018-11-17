@@ -68,6 +68,7 @@ abstract class OpOneHotVectorizer[T <: FeatureType]
   def fitFn(dataset: Dataset[Seq[T#Value]]): SequenceModel[T, OPVector] = {
     val shouldCleanText = $(cleanText)
     val shouldTrackNulls = $(trackNulls)
+    val shouldIncludeLen = $(includeTextLen)
 
     val rdd: RDD[Seq[Map[String, Int]]] = convertToSeqOfMaps(dataset)
 
@@ -86,6 +87,7 @@ abstract class OpOneHotVectorizer[T <: FeatureType]
     val unseen = Option($(unseenName))
     val vecMetadata = makeVectorMetadata(
       shouldTrackNulls = shouldTrackNulls,
+      shouldIncludeLen = shouldIncludeLen,
       unseen = unseen, topValues = topValues,
       outputName = getOutputFeatureName,
       features = getTransientFeatures(),
@@ -208,7 +210,8 @@ final class OpTextPivotVectorizerModel[T <: Text] private[op]
   operationName: String,
   uid: String
 )(implicit tti: TypeTag[T])
-  extends OpOneHotVectorizerModel[T](topValues, shouldCleanText, shouldTrackNulls, operationName, uid) {
+  extends OpOneHotVectorizerModel[T](topValues, shouldCleanText, shouldTrackNulls,
+    operationName, uid) {
   override protected def convertToSet(in: T): Set[_] = in.value.toSet
 }
 
@@ -218,23 +221,31 @@ final class OpTextPivotVectorizerModel[T <: Text] private[op]
 private[op] trait OneHotFun {
 
   protected def makeVectorColumnMetadata(
-    shouldTrackNulls: Boolean, unseen: Option[String], topValues: Seq[Seq[String]], features: Array[TransientFeature]
+    shouldTrackNulls: Boolean, shouldIncludeLen: Boolean,
+    unseen: Option[String], topValues: Seq[Seq[String]], features: Array[TransientFeature]
   ): Array[OpVectorColumnMetadata] = {
     for {
       (parentFeature, values) <- features.zip(topValues)
       parentFeatureType = parentFeature.typeName
       // Append other/null indicators for each input (view here to avoid copying the array when appending the string)
-      value <-
-      if (shouldTrackNulls) values.map(Option(_)).view ++ Array(unseen, Option(TransmogrifierDefaults.NullString))
-      else values.map(Option(_)).view :+ unseen
+      textLen = if (shouldIncludeLen) {
+        Array(unseen, Option(TransmogrifierDefaults.TextLen))
+      } else Array.empty[Option[String]]
+      value <- if (shouldTrackNulls || shouldIncludeLen) {
+        values.map(Option(_)).view ++ (Array(unseen, Option(TransmogrifierDefaults.NullString)) ++ textLen)
+      } else {
+        values.map(Option(_)).view :+ unseen
+      }
+
     } yield parentFeature.toColumnMetaData(true).copy(indicatorValue = value)
   }
 
   protected def makeVectorMetadata(
-    shouldTrackNulls: Boolean, unseen: Option[String], topValues: Seq[Seq[String]], outputName: String,
+    shouldTrackNulls: Boolean, shouldIncludeLen: Boolean,
+    unseen: Option[String], topValues: Seq[Seq[String]], outputName: String,
     features: Array[TransientFeature], stageName: String
   ): OpVectorMetadata = {
-    val columns = makeVectorColumnMetadata(shouldTrackNulls, unseen, topValues, features)
+    val columns = makeVectorColumnMetadata(shouldTrackNulls, shouldIncludeLen, unseen, topValues, features)
     OpVectorMetadata(outputName, columns, Transmogrifier.inputFeaturesToHistory(features, stageName))
   }
 }
@@ -258,8 +269,12 @@ private[op] trait OneHotModelFun[T <: FeatureType] extends CleanTextFun {
       val notPresentVal = notPresent.map(theseCat).sum.toDouble
       val nullVal = if (theseCat.isEmpty) 1.0 else 0.0
       // Append the other and null entries to the vector (note topPresent is sparse, so use top.length as proxy for K)
-      if (shouldTrackNulls) topPresent ++ Array((top.length, notPresentVal), (top.length + 1, nullVal))
-      else topPresent :+ (top.length, notPresentVal)
+      val output = (if (shouldTrackNulls) {
+        topPresent ++ Array((top.length, notPresentVal), (top.length + 1, nullVal))
+      } else {
+        topPresent :+ (top.length, notPresentVal)
+      })
+      output
     }
 
     // Fix indices for sparse vector
