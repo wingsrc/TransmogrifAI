@@ -134,16 +134,6 @@ class SmartTextVectorizer[T <: Text](uid: String = UID[SmartTextVectorizer[T]])(
     val shouldTrackNulls = $(trackNulls)
     val unseen = Option($(unseenName))
     val includeText = $(includeTextLen)
-    val textLenCol = (if (includeText) {
-      val x = textFeatures.head
-      Array(
-        new OpVectorColumnMetadata(
-          parentFeatureName = Seq(x.name),
-          parentFeatureType = Seq(x.typeName),
-          grouping = None,
-          indicatorValue = Option(OpVectorColumnMetadata.TextLength))
-      )
-    } else Array.empty[OpVectorColumnMetadata])
 
     val categoricalColumns = if (categoricalFeatures.nonEmpty) {
       makeVectorColumnMetadata(shouldTrackNulls, includeText, unseen, smartTextParams.categoricalTopValues,
@@ -151,7 +141,8 @@ class SmartTextVectorizer[T <: Text](uid: String = UID[SmartTextVectorizer[T]])(
     } else Array.empty[OpVectorColumnMetadata]
     val textColumns = if (textFeatures.nonEmpty) {
       makeVectorColumnMetadata(textFeatures, makeHashingParams()) ++
-        textFeatures.map(_.toColumnMetaData(isNull = true)) ++ textLenCol
+        textFeatures.map(_.toColumnMetaData(isNull = true)) ++
+        textFeatures.map(_.toTextLenColumnMetaData(includeText))
     } else Array.empty[OpVectorColumnMetadata]
 
     val columns = categoricalColumns ++ textColumns
