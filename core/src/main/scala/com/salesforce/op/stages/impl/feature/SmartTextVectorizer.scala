@@ -142,7 +142,7 @@ class SmartTextVectorizer[T <: Text](uid: String = UID[SmartTextVectorizer[T]])(
     val textColumns = if (textFeatures.nonEmpty) {
       makeVectorColumnMetadata(textFeatures, makeHashingParams()) ++
         textFeatures.map(_.toColumnMetaData(isNull = true)) ++
-        textFeatures.map(_.toTextLenColumnMetaData(includeText))
+        textFeatures.map(_.toTextLenColumnMetaData)
     } else Array.empty[OpVectorColumnMetadata]
 
     val columns = categoricalColumns ++ textColumns

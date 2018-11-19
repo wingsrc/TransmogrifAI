@@ -123,12 +123,12 @@ class TransientFeature
       indicatorValue = if (isNull) Some(OpVectorColumnMetadata.NullString) else None)
     }
 
-  def toTextLenColumnMetaData(includeTextLen: Boolean = true): OpVectorColumnMetadata = {
+  def toTextLenColumnMetaData: OpVectorColumnMetadata = {
     new OpVectorColumnMetadata(
       parentFeatureName = Seq(name),
       parentFeatureType = Seq(typeName),
-      grouping = if (includeTextLen) Some(name) else None,
-      indicatorValue = if (includeTextLen) Some(OpVectorColumnMetadata.TextLength) else None)
+      grouping = Some(name),
+      indicatorValue = Some(OpVectorColumnMetadata.TextLength))
   }
 
   /**
