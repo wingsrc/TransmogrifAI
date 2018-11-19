@@ -590,11 +590,14 @@ class SanityChecker(uid: String = UID[SanityChecker])
         throw new IllegalArgumentException("Vector input metadata is malformed: ", e)
     }
 
+    val vectorMetaColumns = vectorMeta.columns
+    val featureNames = vectorMetaColumns.map(_.makeColName())
+
+    logInfo(s"TEST featureNames: ${featureNames}, vector meta columns: $vectorMetaColumns")
     logInfo(s"Feature size: $featureSize, vector meta size: ${vectorMeta.size}")
     require(featureSize == vectorMeta.size,
       "Number of columns in vector metadata did not match number of columns in data, check your vectorizers")
-    val vectorMetaColumns = vectorMeta.columns
-    val featureNames = vectorMetaColumns.map(_.makeColName())
+
 
     val (corrIndices, vectorRowsForCorr) = if ($(correlationExclusion) == CorrelationExclusion.HashedText.entryName) {
       val hashedIndices = vectorMetaColumns

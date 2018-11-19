@@ -72,7 +72,7 @@ private[op] trait TransmogrifierDefaults {
   val FillWithMean: Boolean = true
   val TrackNulls: Boolean = true
   val TrackInvalid: Boolean = false
-  val IncludeTextLen: Boolean = true // true
+  val IncludeTextLen: Boolean = true
   val MinDocFrequency: Int = 0
   // Default is to fill missing Geolocations with the mean, but if fillWithConstant is chosen, use this
   val DefaultGeolocation: Geolocation = Geolocation(0.0, 0.0, GeolocationAccuracy.Unknown)
@@ -477,6 +477,22 @@ trait TrackNullsParam extends Params {
    */
   def setTrackNulls(v: Boolean): this.type = set(trackNulls, v)
 }
+
+/**
+ * Param that decides whether or not the values that were missing are tracked
+ */
+trait TextLenParam extends Params {
+  final val textLen = new BooleanParam(
+    parent = this, name = "textLen", doc = "option to keep track of values that were missing"
+  )
+  setDefault(textLen, TransmogrifierDefaults.IncludeTextLen)
+
+  /**
+   * Option to keep track of values that were missing
+   */
+  def setTextLen(v: Boolean): this.type = set(textLen, v)
+}
+
 
 /**
  * Param that decides whether or not the values that are considered invalid are tracked
