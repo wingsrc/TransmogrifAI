@@ -50,8 +50,8 @@ class TextMapLenEstimator[T <: OPMap[String]]
 
   override def fitFn(dataset: Dataset[Seq[T#Value]]): SequenceModel[T, OPVector] = {
     val shouldCleanKeys = $(cleanKeys)
-    val shouldCleanValues = $(cleanText)
-    val shouldTokenizeValues = $(tokenizeText)
+    val shouldCleanValues = false // $(cleanText)
+    val shouldTokenizeValues = false // $(tokenizeText)
     val allKeys: Seq[Seq[String]] = getKeyValues(
       in = dataset,
       shouldCleanKeys = shouldCleanKeys,

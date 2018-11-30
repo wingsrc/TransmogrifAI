@@ -50,8 +50,9 @@ class TextLenTransformer[T <: TextList]
   with TextParams with TokenizeTextParam {
 
   override def transformFn: Seq[T] => OPVector = in => {
-    val shouldCleanValues = $(cleanText)
-    val output = if ($(tokenizeText)) {
+    val shouldCleanValues = false // $(cleanText)
+    val shouldTokenizeText = false // $(tokenizeText)
+    val output = if (shouldTokenizeText) {
       in.map { f =>
         if (f.isEmpty) 0.0 else f.value.map(x => cleanTextFn(x, shouldCleanValues).length).sum.toDouble
       }
